@@ -51,6 +51,7 @@ namespace gpu
         {
           out.memory__ = memory;
           out.offset__ = alignedOffset;
+          out.size = size;
           VkDeviceSize newOffset = alignedOffset + size;
           VkDeviceSize remaining = (freeBlocks[i].offset + freeBlocks[i].size) - newOffset;
           if (remaining > 0)

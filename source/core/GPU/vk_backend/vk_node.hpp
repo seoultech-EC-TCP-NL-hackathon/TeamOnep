@@ -12,9 +12,10 @@
 #include <glm/glm.hpp>
 #include <unordered_set>
 #include "enum_op.hpp"
+#include "vk_memory_pool.hpp"
 #include "../node.hpp"
-
-
+#include "../resource/vertex.hpp"
+struct VertexAll;
 namespace gpu
 {
   using VkRenderPassType = RenderPassType;
@@ -51,7 +52,7 @@ namespace gpu
   {
     TRANSFER   = 0,
     PERSISTENT = 1,
-    REFERENCE  = 2
+    FRAME      = 2
   };
 
   enum class VkComputePassCMD
@@ -78,10 +79,11 @@ namespace gpu
     ResourceType type_;
     ResourceUsage usage_;
     MemorySpace mSpace_;
+    VkResourceLifetime lifetime = VkResourceLifetime::PERSISTENT;
     bool hostUpdate__ = false;
     bool dirty__ = false;
-    private:
 
+    private:
     VkMemoryPropertyFlags mFlags_ = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     uint32_t nodeId_ = 0;
     bool allocated__ = false;
@@ -92,12 +94,10 @@ namespace gpu
     VkAccessFlags writeAccessMask__ = VK_ACCESS_MEMORY_READ_BIT;
     VkAccessFlags currentAccessMask__ = VK_ACCESS_NONE;
     VkPass* lastWriter__ = nullptr;
-    VkResourceLifetime lifetime = VkResourceLifetime::PERSISTENT;
   };
 
   class VkBufferNode : public VkNode
   {
-
     friend class VkGraphCompiler;
     friend class VkGraphBuilder;
     friend class VkResourceAllocator;
@@ -108,7 +108,7 @@ namespace gpu
     void* data_;
     VkDeviceSize size_;
     VkBuffer bufferh_;
-
+    VkAllocation allocation__;
     private:
     VkBool32 descriptorAllocated__ = false;
     VkPipelineStageFlagBits writePipelineStage__;
@@ -119,20 +119,21 @@ namespace gpu
     std::vector<VkDescriptorSet> descriptorSet;
   };
 
-  class VkMeshNode : public VkNode
+  class VkMeshBuffer : public VkNode
   {
-    void cmdDraw(VkCommandBuffer cmd);
-    friend class VkGraphCompiler;
-    friend class VkGraphBuilder;
-    friend class VkResourceAllocator;
-    friend class VkGraph;
-    friend class VkDiscardPool;
+    public:
+   void draw(VkCommandBuffer cmd);
     void* vData__;
     void* iData__;
-    VkDeviceSize vSize__;
-    VkDeviceSize iSize__;
+    uint32_t indexCount__;
     VkBuffer vertexBuffer__;
     VkBuffer indexBuffer__;
+    std::vector<VertexAll>  vertex;
+    std::vector<uint32_t> indices;
+    VkDeviceSize vSize__;
+    VkDeviceSize iSize__;
+    VkAllocation vAllocation__;
+    VkAllocation iAllocation__;
     VkPipeline pipeline__;
     VkPipelineLayout pipelineLayout__;
     VkAccessFlagBits writeAccess__ = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -150,8 +151,13 @@ namespace gpu
     VkImageType imageType__ = VK_IMAGE_TYPE_2D;
     uint32_t height__ = 0;
     uint32_t width__ = 0;
+    uint32_t mipLevels__ = 1;
+    uint32_t levelCount__ = 1;
     VkImageAspectFlags aspectMask__;
 
+    VkImage imageh__ = VK_NULL_HANDLE;
+    VkImageView imageView__;
+    VkAllocation allocation__;
     private:
     friend class VkGraph;
     friend class VkGraphCompiler;
@@ -159,18 +165,16 @@ namespace gpu
     friend class VkResourceAllocator;
     friend class VkDiscardPool;
 
-    VkImage imageh__ = VK_NULL_HANDLE;
-    VkImageView imageView__;
-    uint32_t levelCount__ = 0;
     VkImageLayout currentLayout__ = VK_IMAGE_LAYOUT_UNDEFINED;
     VkImageLayout writeLayout__ = VK_IMAGE_LAYOUT_UNDEFINED;
     VkBool32 writen__ = false;
-    uint32_t mipLevels__ = 0;
     VkImageUsageFlags usage__;
   };
 
   class VkTextureNode : public VkImageNode
   {
+    public:
+    VkAllocation allocation__;
     friend class VkGraphCompiler;
     friend class VkGraphBuilder;
     friend class VkResourceAllocator;
@@ -209,6 +213,8 @@ namespace gpu
   class VkPass
   {
     public:
+    std::unordered_set<VkPass*> dependency__ = {};
+    std::unordered_set<VkPass*> dependent__ = {};
     RenderPassType passType;
     std::vector<VkNode*> read__;
     std::vector<VkNode*> write__;
@@ -218,6 +224,7 @@ namespace gpu
     std::optional<VkPolygonMode> polygonMode_;
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers__;
     std::vector<VkBufferMemoryBarrier> bufferBarriers__;
+
     struct
     {
       std::vector<VkRenderingAttachmentInfo> colorAttachment__;
@@ -232,14 +239,14 @@ namespace gpu
       PFN_vkCmdSetPolygonModeEXT vkCmdSetPolygonModeEXT;
       VkClearColorValue clearColor__;
     } passParameter__;
+
     void link();
     friend class VkGraphCompiler;
     friend class VkGraphBuilder;
     friend class VkResourceAllocator;
     friend class VkGraph;
-    uint32_t linkCount;
-    std::vector<VkPass*> dependency__ = {};
-    std::vector<VkPass*> dependent__ = {};
+    uint32_t linkCount = 0;
+
     uint32_t passId__ = 0;
     bool culled = false;
     bool transitionPass = false;

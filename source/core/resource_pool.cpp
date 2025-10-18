@@ -1,6 +1,6 @@
 #include<resource_pool.hpp>
 
-VulkanTexture *ResourcePool::getTextures(bindingIndex index)
+VulkanTexture* ResourcePool::getTextures(bindingIndex index)
 {
   if (currentBinding_ > index)
   {
@@ -9,19 +9,21 @@ VulkanTexture *ResourcePool::getTextures(bindingIndex index)
   return nullptr;
 }
 
-void ResourcePool::setLight() {}
+void ResourcePool::setLight()
+{
+}
 
-Camera *ResourcePool::getCamera()
+Camera* ResourcePool::getCamera()
 {
   return camera.get();
 }
 
 void ResourcePool::uploadMesh(VkCommandBuffer command, std::string path)
 {
-  std::string modelPath = std::string(ASSET_MODELS_DIR) + path;
+  std::string modelPath = path;
   spdlog::info("Loading {} ", modelPath.c_str());
-  Mesh tempMesh              = importer_.loadModel(modelPath.c_str(), allocator_);
-  tempMesh.name              = path;
+  Mesh tempMesh = importer_.loadModel(modelPath.c_str(), allocator_);
+  tempMesh.name = path;
   std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(tempMesh.getVertices(), tempMesh.getIndices(), allocator_);
 
   mesh->copyBuffer(command);
@@ -34,26 +36,35 @@ void ResourcePool::uploadMesh(VkCommandBuffer command, std::string path)
       mesh->name = selectedModel.mesh->name + "t";
     }
   }
-  selectedModel.mesh     = mesh.get();
+  selectedModel.mesh = mesh.get();
   selectedModel.material = materials_["base"].get();
-  meshes_[path]          = std::move(mesh);
+  meshes_[path] = std::move(mesh);
+}
+
+Mesh ResourcePool::uploadMesh(std::string path)
+{
+  std::string modelPath = path;
+  spdlog::info("Loading {} ", modelPath.c_str());
+  Mesh tempMesh = importer_.loadModel(modelPath.c_str(), allocator_);
+  tempMesh.name = path;
+  return std::move(tempMesh);
 }
 
 void ResourcePool::uploadTexture(VkCommandBuffer command, std::string path)
 {
   TextureCreateInfo textureInfo;
-  textureInfo.device      = device_;
-  textureInfo.sampler     = samplerBuilder_->get();
+  textureInfo.device = device_;
+  textureInfo.sampler = samplerBuilder_->get();
   std::string texturePath = std::string(ASSET_TEXTURES_DIR) + path;
-  textureInfo.filename    = texturePath.c_str();
-  textureInfo.allocator   = &allocator_;
-  auto texture            = std::make_unique<VulkanTexture>(textureInfo);
+  textureInfo.filename = texturePath.c_str();
+  textureInfo.allocator = &allocator_;
+  auto texture = std::make_unique<VulkanTexture>(textureInfo);
   if (!texture->uploadedReady)
   {
     spdlog::info("fail to load image");
     return;
   }
-  texture->bindigIndex    = currentBinding_;
+  texture->bindigIndex = currentBinding_;
   texture->copyBufferToImage(command);
   texture->descriptor = bindlessDescirptor_;
   texture->uploadDescriptor(bindlessDescirptor_, currentBinding_);

@@ -33,6 +33,7 @@ namespace gpu{
   using VertexBindingDescriptor = VkVertexInputBindingDescription;
   using VertexAttribute         = VkVertexInputAttributeDescription;
 
+
   constexpr uint32_t FORMAT_R8G8_UNORM           = 16;
   constexpr uint32_t FORMAT_R8G8_SNORM           = 17;
   constexpr uint32_t FORMAT_R8G8_USCALED         = 18;
@@ -124,11 +125,12 @@ namespace gpu{
                        float width,
                        float height);
   void cmdBeginRendering(CommandBuffer cmd , RenderPass* pass);
+  void cmdDraw(CommandBuffer cmd, uint32_t handle);
 
   inline auto cmdBindDescriptorSets = vkCmdBindDescriptorSets;
   inline auto cmdBindPipeline       = vkCmdBindPipeline;
   inline auto cmdPushConstant       = vkCmdPushConstants;
-  inline auto cmdDraw               = vkCmdDraw;
+
   inline auto cmdDisPatch           = vkCmdDispatch;
   inline auto cmdEndRendering       = vkCmdEndRendering;
   inline auto cmdSetViewPort        = vkCmdSetViewport;

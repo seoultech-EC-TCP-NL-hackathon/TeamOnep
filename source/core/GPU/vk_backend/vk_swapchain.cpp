@@ -31,7 +31,7 @@ gpu::VkSwapchainContext::VkSwapchainContext(gpu::VkContext* pCtxt) :
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   createInfo.surface          = pCtxt->surfaceh__;
-  createInfo.minImageCount    = imageCount;
+  createInfo.minImageCount    = 3;
   createInfo.imageFormat      = surfaceFormat.format;
   createInfo.imageColorSpace  = surfaceFormat.colorSpace;
   createInfo.imageExtent      = extent__;
@@ -98,7 +98,7 @@ gpu::VkSwapchainContext::VkSwapchainContext(gpu::VkContext* pCtxt) :
       throw std::runtime_error("failed to create image view!");
     }
   }
-
+  pCtxt->renderingContext.maxInflight__ = swapImageCount;
   spdlog::info("make swap chain ");
   spdlog::info("swaphchain image : {}", this->img__.size());
 }

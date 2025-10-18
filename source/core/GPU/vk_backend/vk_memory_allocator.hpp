@@ -29,20 +29,17 @@ namespace gpu
 {
   class VkContext;
 
-  class VkMemoryAllocator{
-  public:
+  class VkMemoryAllocator
+  {
+    public:
     VkMemoryAllocator(gpu::VkContext* pCtxt);
     ~VkMemoryAllocator();
-
     VkAllocation allocate(VkMemoryRequirements requirements,
                           VkMemoryPropertyFlags desiredFlags,
                           const std::string& debugName = "GenericAllocation");
-
     void free(VkAllocation allocation, VkDeviceSize size);
 
-
-
-  private:
+    private:
     std::vector<VkMemoryPool*> pools;
     VkContext* pCtxt;
 

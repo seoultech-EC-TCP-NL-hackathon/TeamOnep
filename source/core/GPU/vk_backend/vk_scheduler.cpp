@@ -4,7 +4,7 @@
 #include "vk_context.hpp"
 #include "vk_scheduler.hpp"
 #include "vk_graph_compiler.hpp"
-#include "vk_graph_executer.hpp"
+#include "vk_graph.hpp"
 
 gpu::VkScheduler::VkScheduler(gpu::VkContext* context) :
   pCtxt_(context),
@@ -28,7 +28,7 @@ gpu::VkScheduler::~VkScheduler() = default;
 void gpu::VkScheduler::runGraphicsPipeline()
 {
   uint64_t fenceTime = 1000000;
-  VkFence vkFence    = fencePool_.fences[pCtxt_->
+  VkFence vkFence = fencePool_.fences[pCtxt_->
                                       renderingContext.currentFrame__];
 
   vkWaitForFences(pCtxt_->deviceh__,
@@ -49,9 +49,14 @@ void gpu::VkScheduler::runGraphicsPipeline()
                                             [pCtxt_->renderingContext.currentFrame__]),
                                           VK_NULL_HANDLE,
                                           &(pCtxt_->renderingContext.currentSwapchainIndex__));
+  auto swapchain = reinterpret_cast<VkImageNode*>(pCtxt_->nodeHash_[pCtxt_->pGraphBuilder->getSwapchainImage()]);
+  swapchain->nodeName_ = "swapchain image";
+  //swapchain->imageh__ = pCtxt_->pSwapChainContext->img__[pCtxt_->renderingContext.currentSwapchainIndex__];
+  //swapchain->imageView__ = pCtxt_->pSwapChainContext->imgView__[pCtxt_->renderingContext.currentSwapchainIndex__];
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR)
   {
+    pCtxt_->pSwapChainContext->broked__ = true;
     //this->swapchain -> recreate()
     //this->recreateSwapchain__ = VK_TRUE;
     //this->passes_.clear();
@@ -67,8 +72,8 @@ void gpu::VkScheduler::runGraphicsPipeline()
     throw std::runtime_error("fail to reset command buffer");
   }
   VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
   beginInfo.pInheritanceInfo = nullptr;
 
   if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
@@ -93,15 +98,15 @@ void gpu::VkScheduler::runGraphicsPipeline()
   };
 
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-  submitInfo.sType                  = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.waitSemaphoreCount     = 1;
-  submitInfo.pWaitSemaphores        = waitSemaphores;
-  submitInfo.pWaitDstStageMask      = waitStages;
-  submitInfo.commandBufferCount     = 1;
-  submitInfo.pCommandBuffers        = &cmd;
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &cmd;
 
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores    = &renderFinishSemaphorePool_.semaphores__
+  submitInfo.pSignalSemaphores = &renderFinishSemaphorePool_.semaphores__
     [pCtxt_->renderingContext.currentFrame__];
 
   if (vkQueueSubmit(this->pCtxt_->graphicsQh__,
@@ -115,24 +120,20 @@ void gpu::VkScheduler::runGraphicsPipeline()
 
 
   VkSwapchainKHR swapchains[] = {pCtxt_->pSwapChainContext->swapchain__};
-
   VkPresentInfoKHR presentInfo{};
-  presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores    = &renderFinishSemaphorePool_.semaphores__
+  presentInfo.pWaitSemaphores = &renderFinishSemaphorePool_.semaphores__
     [pCtxt_->renderingContext.currentFrame__];
 
   presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains    = swapchains;
-  presentInfo.pImageIndices  = &(pCtxt_->renderingContext.currentSwapchainIndex__);
+  presentInfo.pSwapchains = swapchains;
+  presentInfo.pImageIndices = &(pCtxt_->renderingContext.currentSwapchainIndex__);
   if (vkQueuePresentKHR(this->pCtxt_->presentQh__, &presentInfo) != VK_SUCCESS)
   {
     throw std::runtime_error("present Queue error");
   }
   pCtxt_->renderingContext.currentFrame__ = (pCtxt_->renderingContext.currentFrame__ + 1) %
-                                               (pCtxt_->renderingContext.maxInflight__);
-  pCtxt_->pGraphBuilder->frame.dirty_ = false;
-
-
+    (pCtxt_->renderingContext.maxInflight__);
   ////spdlog::debug(" present");
 }

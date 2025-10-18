@@ -713,7 +713,7 @@
 // }
 ///
 ///
-//GPU::SwapchainAttachmentPool::SwapchainAttachmentPool(const DepthImageCI &info) : device(info.device),
+//GPU::Pool::SwapchainAttachmentPool(const DepthImageCI &info) : device(info.device),
 //                                                           allocator(*info.allocator),
 //                                                           extent(info.extent)
 //{

@@ -17,10 +17,11 @@ namespace gpu
   class VkResourceAllocator
   {
     friend class VkDiscardPool;
+
     public:
     VkResourceAllocator(VkContext* pCtxt);
     ~VkResourceAllocator();
-    void buildMeshNode(VkMeshNode* buffer);
+    void buildMeshNode(VkMeshBuffer* buffer);
     void buildImageNode(VkImageNode* image);
     void uploadBufferTransferPass(VkBuffer src,
                                   VkBuffer dst,
@@ -28,7 +29,7 @@ namespace gpu
                                   VkDeviceSize dstOffset,
                                   VkDeviceSize size);
 
-    void buildBufferCopyPass(VkBuffer src,
+    void uploadCopyPass(VkBuffer src,
                              VkBuffer dst,
                              VkDeviceSize srcOffset,
                              VkDeviceSize dstOffset,
@@ -37,24 +38,22 @@ namespace gpu
     void buildImageCopyPass(VkBuffer buffer,
                             VkTextureNode* texture);
 
-    void buildBufferHandle(VkDeviceSize size,
-                           VkBufferUsageFlags usage,
-                           VkBuffer* pBuffer);
+    VkBuffer buildBufferHandle(VkDeviceSize size,
+                           VkBufferUsageFlags usage);
 
     void buildKtxTexture(gpu::VkTextureNode* texture);
     void buildTexture(gpu::VkTextureNode* texture);
 
     VkBufferNode getStagingBuffer(void* data,
                                   VkDeviceSize size);
-
-    void mBindBuffer(VkBufferNode* buffer__,
-                     VkMemoryPropertyFlags desiredFlag);
-
+    VkAllocation mBindBuffer(VkBuffer buffer,
+                             VkMemoryPropertyFlags desiredFlag);
+    VkAllocation mBindImage(VkImage image,
+                            VkMemoryPropertyFlags desiredFlag);
     void buildImageBarrierPass(VkImage img,
                                VkPipelineStageFlagBits src,
                                VkPipelineStageFlags dst);
-    void mBindImage(VkImageNode* image,
-                    VkMemoryPropertyFlags desiredFlag);
+
     void allocateSampler();
     void allocateDescriptorSet();
     void allocateDescriptorSetLayout();
@@ -67,7 +66,6 @@ namespace gpu
     VkDeviceSize alignUp(VkDeviceSize v, VkDeviceSize a) const;
     VkPhysicalDeviceProperties physicalDeviceProperties;
     uint32_t textureBindingSlot_;
-    std::unordered_map<VkNodeId, VkAllocation> mAlloc_;
     gpu::VkSamplerBuilder samplerBuilder_;
     //std::unique_ptr<GPU::VkShaderPool> fragShaderPool_;
     //std::unique_ptr<GPU::VkShaderPool> vertexShaderPool_;

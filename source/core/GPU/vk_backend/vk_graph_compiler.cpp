@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unordered_set>
 #include <deque>
+#include <algorithm>
 #include "vk_context.hpp"
 #include "vk_discard_pool.hpp"
 #include "vk_resource_allocator.hpp"
@@ -21,25 +22,28 @@ namespace gpu
   {
     pCtxt->compiledPass.clear();
     std::vector<VkPass*>& passes = pCtxt->uploadedPass;
-    for (gpu::VkPass* pass : passes)
+
+    for (auto* pass : passes)
     {
-      for (auto read__ : pass->read__)
+      for (auto* read__ : pass->read__)
       {
-        if (read__->lastWriter__ != pass && read__->lastWriter__ != nullptr)
+        read__->currentAccessMask__ = VK_ACCESS_NONE;
+        read__->currentPipeline__ = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        if (read__->lastWriter__ != nullptr && pass != read__->lastWriter__)
         {
-          //pass->link(read__)
-          read__->lastWriter__->dependent__.push_back(pass);
-          pass->dependency__.push_back(read__->lastWriter__);
+          pass->dependency__.insert(read__->lastWriter__);
+          read__->lastWriter__->dependent__.insert(pass);
         }
       }
-      for (auto& write__ : pass->write__)
+      for (auto* write__ : pass->write__)
       {
-        maskingTimeline(write__);
-        if (write__->lastWriter__ != nullptr && write__->lastWriter__ != pass)
+        if (write__->lastWriter__ != nullptr && pass != write__->lastWriter__)
         {
-          write__->lastWriter__->dependent__.push_back(pass);
-          pass->dependency__.push_back(write__->lastWriter__);
+          pass->dependency__.insert(write__->lastWriter__);
+          write__->lastWriter__->dependent__.insert(pass);
         }
+        maskingTimeline(write__);
+        write__->lastWriter__ = pass;
       }
     }
     ///todo:
@@ -47,9 +51,10 @@ namespace gpu
     std::deque<VkPass*> ready;
     for (auto* pass : pCtxt->uploadedPass)
     {
-      pass->linkCount =pass->dependency__.size();
+      pass->linkCount = pass->dependency__.size();
       if (pass->dependency__.size() == 0)
       {
+        pass->dependency__.clear();
         ready.push_back(pass);
       }
     }
@@ -60,19 +65,34 @@ namespace gpu
       compileGraph(pass);
       for (auto* subPass : pass->dependent__)
       {
-        subPass->linkCount --;
+        subPass->linkCount--;
         if (subPass->linkCount == 0)
         {
           ready.push_back(subPass);
         }
       }
+      pass->dependent__.clear();
     }
-    std::vector<VkNode*> frameResources;
-    for (auto& node : frameNodes_)
-    {
-      frameResources.push_back(node);
-    }
-    pCtxt->pDiscardPool->registerResource(frameResources);
+    //std::vector<VkNode*> frameResources;
+    //for (auto& node : frameNodes_)
+    //{
+    //  frameResources.push_back(node);
+    //}
+    VkNode* node = pCtxt->nodeHash_[pCtxt->pGraphBuilder->getSwapchainImage()];
+    VkImageNode* swapchain = reinterpret_cast<VkImageNode*>(node);
+    VkPass barrierPass;
+    barrierPass.passType = VkRenderPassType::BARRIER_PASS;
+    barrierPass.execute = buildImageBarrier(swapchain->currentAccessMask__,
+                                            0,
+                                            swapchain->currentPipeline__,
+                                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                            swapchain->currentLayout__,
+                                            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                            pCtxt->graphicsFamailyIdx__,
+                                            pCtxt->graphicsFamailyIdx__,
+                                            swapchain);
+    pCtxt->compiledPass.push_back(barrierPass);
+    //pCtxt->pDiscardPool->registerResource(frameResources);
     pCtxt->uploadedPass.clear();
   }
 
@@ -80,8 +100,6 @@ namespace gpu
   /// memory bind(triming -> allocate)
   void VkGraphCompiler::allocate(VkNode* _read)
   {
-    _read->currentAccessMask__ = VK_ACCESS_NONE;
-    _read->currentPipeline__ = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     if (!_read->allocated__)
     {
       if (_read->type_ == gpu::ResourceType::IMAGE)
@@ -94,32 +112,13 @@ namespace gpu
       {
         VkBufferNode* frameBuffer = reinterpret_cast<gpu::VkBufferNode*>(_read);
         frameBuffer->usage__ = getResourceUsage(frameBuffer->usage_);
-        pCtxt->pResourceAllocator->buildBufferHandle(frameBuffer->size_,
-                                                     frameBuffer->usage__,
-                                                     &frameBuffer->bufferh_);
+        frameBuffer->bufferh_ = pCtxt->pResourceAllocator->buildBufferHandle(frameBuffer->size_,
+                                                                             frameBuffer->usage__);
       }
-    }
-    if (!_read->binded__)
-    {
-      if (_read->type_ == gpu::ResourceType::IMAGE)
+      if (_read->type_ == ResourceType::MESH)
       {
-        VkImageNode* frameImage = reinterpret_cast<gpu::VkImageNode*>(_read);
-        pCtxt->pResourceAllocator->mBindImage(frameImage,
-                                              frameImage->mFlags_);
-      }
-      if (_read->type_ == ResourceType::BUFFER)
-      {
-        VkBufferNode* frameBuffer = reinterpret_cast<gpu::VkBufferNode*>(_read);
-        pCtxt->pResourceAllocator->mBindBuffer(frameBuffer,
-                                               frameBuffer->mFlags_);
-        if (!_read->hostUpdate__)
-        {
-          pCtxt->pResourceAllocator->hostUpdate(frameBuffer);
-        }
-      }
-      if (_read->lifetime != VkResourceLifetime::PERSISTENT)
-      {
-        frameNodes_.insert(_read);
+        VkMeshBuffer* mesh = reinterpret_cast<gpu::VkMeshBuffer*>(_read);
+        pCtxt->pResourceAllocator->buildMeshNode(mesh);
       }
     }
   }
@@ -131,8 +130,7 @@ namespace gpu
     {
       VkImageNode* frameImage = reinterpret_cast<gpu::VkImageNode*>(node);
       if (frameImage->usage_ & (gpu::ResourceUsage::G_BUFFER |
-        gpu::ResourceUsage::LIGHTNING_BUFFER |
-        gpu::ResourceUsage::PRESENT_ATTACHMENT))
+        gpu::ResourceUsage::LIGHTNING_BUFFER))
       {
         frameImage->writeAccessMask__ = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         frameImage->writePipeline__ = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -158,7 +156,7 @@ namespace gpu
       if (node->usage_ & (gpu::ResourceUsage::MESH_BUFFER |
         gpu::ResourceUsage::VERTEX_BUFFER))
       {
-        VkMeshNode* buffer = reinterpret_cast<gpu::VkMeshNode*>(node);
+        VkMeshBuffer* buffer = reinterpret_cast<gpu::VkMeshBuffer*>(node);
         buffer->writeAccessMask__ = VK_ACCESS_TRANSFER_WRITE_BIT;
         buffer->writePipeline__ = VK_PIPELINE_STAGE_TRANSFER_BIT;
       }
@@ -174,11 +172,6 @@ namespace gpu
   VkImageLayout gpu::VkGraphCompiler::decideReadImageLayout(gpu::ResourceUsage usage)
   {
     uint32_t usage_ = static_cast<uint32_t>(usage);
-
-    if (usage & gpu::ResourceUsage::PRESENT_ATTACHMENT)
-    {
-      return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    }
     if (usage & (gpu::ResourceUsage::G_BUFFER |
       gpu::ResourceUsage::LIGHTNING_BUFFER |
       gpu::ResourceUsage::FORWARD |
@@ -186,7 +179,6 @@ namespace gpu
     {
       return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
-
     if (usage & (gpu::ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
       gpu::ResourceUsage::SHADOW_BUFFER))
     {
@@ -212,10 +204,10 @@ namespace gpu
         static_cast<uint32_t>(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
       );
     }
-    if (usage_ & (gpu::ResourceUsage::DEPTH_STENCIL_ATTACHMENT) |
-      (gpu::ResourceUsage::SHADOW_BUFFER))
+    if (usage_ & (gpu::ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
+      gpu::ResourceUsage::SHADOW_BUFFER))
     {
-      return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     }
     if (usage_ & (gpu::ResourceUsage::G_BUFFER |
       ResourceUsage::POST_PROCESS |
@@ -248,10 +240,6 @@ namespace gpu
       gpu::ResourceUsage::VERTEX_BUFFER))
     {
       return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-    }
-    if (readUsage & gpu::ResourceUsage::PRESENT_ATTACHMENT)
-    {
-      return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     }
     if (readUsage & (gpu::ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
       gpu::ResourceUsage::SHADOW_BUFFER))
@@ -288,10 +276,6 @@ namespace gpu
       return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
     }
 
-    if (readUsage & gpu::ResourceUsage::PRESENT_ATTACHMENT)
-    {
-      return 0;
-    }
 
     if (readUsage & (gpu::ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
       gpu::ResourceUsage::SHADOW_BUFFER))
@@ -317,15 +301,30 @@ namespace gpu
 
   void gpu::VkGraphCompiler::compileGraph(VkPass* renderPass)
   {
+    for (auto* _read : renderPass->read__)
+    {
+      allocate(_read);
+      if (_read->type_ == gpu::ResourceType::IMAGE)
+      {
+        gpu::VkImageNode* readImage = reinterpret_cast<gpu::VkImageNode*>(_read);
+        readSync(readImage);
+        insertResolve(readImage);
+      }
+      if (_read->type_ == gpu::ResourceType::BUFFER)
+      {
+        VkBufferNode* buffer = reinterpret_cast<VkBufferNode*>(_read);
+        readSync(buffer);
+      }
+    }
     for (auto* write : renderPass->write__)
     {
+      allocate(write);
       if (write->type_ == gpu::ResourceType::IMAGE)
       {
         gpu::VkImageNode* frameImage = reinterpret_cast<gpu::VkImageNode*>(write);
         writeSync(frameImage);
         if (frameImage->usage_ & (gpu::ResourceUsage::G_BUFFER |
-          gpu::ResourceUsage::LIGHTNING_BUFFER |
-          gpu::ResourceUsage::PRESENT_ATTACHMENT))
+          gpu::ResourceUsage::LIGHTNING_BUFFER))
         {
           if (!renderPass->passParameter__.writen__)
           {
@@ -337,11 +336,11 @@ namespace gpu
               .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             };
             colorAttachment.clearValue.color = renderPass->passParameter__.clearColor__;
-            frameImage->writen__ = true;
             if (frameImage->writen__)
             {
               colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
             }
+            frameImage->writen__ = true;
             renderPass->passParameter__.colorAttachment__.push_back(colorAttachment);
           }
         }
@@ -367,27 +366,13 @@ namespace gpu
           writeSync(buffer);
         }
       }
-
-      for (auto* _read : renderPass->read__)
-      {
-        if (_read->type_ == gpu::ResourceType::IMAGE)
-        {
-          gpu::VkImageNode* readImage = reinterpret_cast<gpu::VkImageNode*>(_read);
-          readSync(readImage);
-          insertResolve(readImage);
-        }
-        if (_read->type_ == gpu::ResourceType::BUFFER)
-        {
-          VkBufferNode* buffer = reinterpret_cast<VkBufferNode*>(_read);
-          readSync(buffer);
-        }
-      }
-      if (renderPass->execute != nullptr)
-      {
-        pCtxt->compiledPass.push_back(*renderPass);
-      }
+    }
+    if (renderPass->execute != nullptr)
+    {
+      pCtxt->compiledPass.push_back(*renderPass);
     }
   }
+
 
   void VkGraphCompiler::readSync(VkImageNode* image)
   {
@@ -424,7 +409,8 @@ namespace gpu
   {
     if ((image->writeLayout__ != image->currentLayout__) ||
       (image->currentAccessMask__ != image->writeAccessMask__) ||
-      (image->currentPipeline__ != image->writePipeline__))
+      (image->currentPipeline__ != image->writePipeline__) ||
+      image->lastWriter__ != nullptr) //who write-> sync
     {
       VkPass barrierPass;
       barrierPass.passType = VkRenderPassType::BARRIER_PASS;
@@ -475,6 +461,8 @@ namespace gpu
         srcQFamily,
         dstQFamily](VkCommandBuffer cmd)
       {
+        spdlog::debug(" resource dst StageMast {}", static_cast<uint32_t>(dstStageMask));
+        spdlog::debug(" resource dst AccessMask {}", static_cast<uint32_t>(dstAccessMask));
         VkDeviceSize offsets = 0;
         VkBufferMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -523,6 +511,9 @@ namespace gpu
         srcQFamily,
         dstQFamily](VkCommandBuffer cmd)
       {
+        spdlog::debug(" resource usage {}", static_cast<uint32_t>(dstImageLayout));
+        spdlog::debug(" resource usage {}", static_cast<uint32_t>(dstStageMask));
+        spdlog::debug(" resource usage {}", static_cast<uint32_t>(dstImageLayout));
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = srcImageLayout;
@@ -533,8 +524,9 @@ namespace gpu
         barrier.subresourceRange.aspectMask = srcImage->aspectMask__;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = srcImage->levelCount__;
-        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.levelCount = 1;
         barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
         barrier.srcAccessMask = srcAccessMask;
         barrier.dstAccessMask = dstAccessMask;
         vkCmdPipelineBarrier(
@@ -560,6 +552,8 @@ namespace gpu
     lambda = [srcBuffer,
         dstImage](VkCommandBuffer cmd)
       {
+        spdlog::debug(" resource usage {}", static_cast<uint32_t>(dstImage->usage_));
+
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
@@ -574,7 +568,7 @@ namespace gpu
           dstImage->height__,
           1
         };
-        spdlog::info("call to command buffer to trenslate to texture");
+        spdlog::debug("call to command buffer to trenslate to texture");
         vkCmdCopyBufferToImage(
                                cmd,
                                srcBuffer->bufferh_,
@@ -594,6 +588,7 @@ namespace gpu
     lambda = [&srcBuffer,
         &dstBuffer](VkCommandBuffer cmd)
       {
+        spdlog::debug(" resource usage {}", static_cast<uint32_t>(dstBuffer->usage_));
         VkDeviceSize offsets = 0;
         VkBufferCopy bufferCopy{};
         bufferCopy.srcOffset = 0;
@@ -608,3 +603,38 @@ namespace gpu
     return lambda;
   }
 }
+
+//write->reader dependency
+//for (gpu::VkPass* pass : passes)
+//{
+//  for (auto& write__ : pass->write__)
+//  {
+//    maskingTimeline(write__);
+//    for (auto& reader__ : write__->reader__)
+//    {
+//      if (pass != reader__)
+//      {
+//        //W->R
+//        reader__->dependency__.insert(pass);
+//        pass->dependent__.insert(reader__);
+//      }
+//    }
+//    //W->W
+//    if (write__->lastWriter__ != nullptr &&
+//      write__->lastWriter__ != pass)
+//    {
+//      pass->dependency__.insert(write__->lastWriter__);
+//      write__->lastWriter__->dependent__.insert(pass);
+//    }
+//    write__->lastWriter__ = pass;
+//  }
+//  for (auto read__ : pass->read__)
+//  {
+//    //pass->link(read__)
+//    if (!read__->allocated__ ||
+//      read__->dirty__)
+//    {
+//      allocate(read__);
+//    }
+//  }
+//}

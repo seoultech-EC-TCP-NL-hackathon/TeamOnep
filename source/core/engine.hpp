@@ -4,21 +4,12 @@
 #include  <common.hpp>
 #include  <importer.hpp>
 #include <scene_graph/mesh.hpp>
-#include <render_graph/renderer.hpp>
+#include <render/renderer.hpp>
 #include <../feature/UI/ui.hpp>
 #include <io/event_manager.hpp>
 #include  <resource_pool.hpp>
 #include "GPU/context.hpp"
 #include "swapchain_view.hpp"
-#ifdef FORCE_UTF8_CONSOLE
-#include <windows.h>
-struct Utf8ConsoleInit {
-  Utf8ConsoleInit() {
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-  }
-} _utf8_console_init;
-#endif
 
 class Engine{
 public:

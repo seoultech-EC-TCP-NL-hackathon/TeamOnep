@@ -10,18 +10,33 @@ UI::UI() = default;
 
 void UI::uploadUIPass()
 {
-  gpu::NodeId swapchain = gpu::ctx__.pGraphBuilder->buildSwapchainImage();
+  gpu::NodeId swapchain = gpu::ctx__.pGraphBuilder->getSwapchainImage();
   mns::uptr<gpu::RenderPass> pass = mns::mUptr<gpu::RenderPass>();
   pass->passType = gpu::RenderPassType::UI;
   gpu::RenderPass* ptr = pass.get();
+  ptr->dependency__ = {};
+  ptr->dependent__ = {};
+  ptr->linkCount = 0;
   pass->execute = [this, ptr](gpu::CommandBuffer cmd)
   {
-    gpu::cmdBeginRendering(cmd, ptr);
+    cmdBeginRendering(cmd,ptr);
     rec(cmd);
     drawcall(cmd);
     drawTransition(cmd);
     render(cmd);
-    gpu::cmdEndRendering(cmd);
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontDefault();
+    io.Fonts->Build();
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+    ImFont* font = ImGui::GetIO().Fonts->Fonts[0];
+
+    if (font == nullptr)
+    {
+      spdlog::info("no font ");
+    }
+    spdlog::info("test");
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+    vkCmdEndRendering(cmd);
   };
   gpu::PassId uiPass = gpu::ctx__.pGraphBuilder->addPass(pass);
   gpu::ctx__.pGraphBuilder->addWriteResource(uiPass, swapchain);
@@ -120,7 +135,6 @@ void UI::rec(VkCommandBuffer command)
 void UI::render(VkCommandBuffer command)
 {
   ImGui::Render();
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
 }
 
 void UI::draw(VkCommandBuffer command)

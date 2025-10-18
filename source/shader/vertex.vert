@@ -39,7 +39,8 @@ void main() {
   vec3 T = cross(B, N) * handedness;
 
   vec4 worldPos = constant.model * vec4(inPos.xyz, 1.0);
-  gl_Position = camera.proj * camera.view * worldPos;
+  //gl_Position = camera.proj * camera.view * worldPos;
+  gl_Position =  worldPos;
   outPos = worldPos.xyz;
   outNormal = inNormal;
   fragTexCoord = inUV;

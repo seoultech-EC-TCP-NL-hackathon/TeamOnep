@@ -8,39 +8,43 @@
 extern mns::IoSystem io__;
 #define IMPLE_VULKAN
 #ifdef IMPLE_VULKAN
-namespace gpu{
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+
+namespace gpu
+{
   gpu::Context ctx__;
-  constexpr uint32_t POLYGON_MODE_FILL  = 0;
-  constexpr uint32_t POLYGON_MODE_LINE  = 1;
+  constexpr uint32_t POLYGON_MODE_FILL = 0;
+  constexpr uint32_t POLYGON_MODE_LINE = 1;
   constexpr uint32_t POLYGON_MODE_POINT = 2;
 
   void cmdSetViewports(CommandBuffer cmd, float x, float y, float width, float height)
-    {
+  {
     ViewPort viewport;
-    viewport.x        = x;
-    viewport.y        = x;
-    viewport.width    = width;
-    viewport.height   = height;
+    viewport.x = x;
+    viewport.y = x;
+    viewport.width = width;
+    viewport.height = height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     VkRect2D scissor;
     scissor.offset = {0, 0};
     scissor.extent = {
-    static_cast<uint32_t>(width),
-    static_cast<uint32_t>(height)
+      static_cast<uint32_t>(width),
+      static_cast<uint32_t>(height)
     };
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdSetScissor(cmd, 0, 1, &scissor);
-    }
+  }
 
-  void cmdBeginRendering(CommandBuffer cmd, RenderPass *pass)
-    {
+  void cmdBeginRendering(CommandBuffer cmd, RenderPass* pass)
+  {
     gpu::RenderingInfo renderingInfo{
-    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-    .layerCount = 1,
+      .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+      .layerCount = 1,
     };
     renderingInfo.colorAttachmentCount = pass->passParameter__.colorAttachment__.size();
-    renderingInfo.pColorAttachments    = pass->passParameter__.colorAttachment__.data();
+    renderingInfo.pColorAttachments = pass->passParameter__.colorAttachment__.data();
     if (pass->passParameter__.depthAttachment__.has_value())
     {
       renderingInfo.pDepthAttachment = &pass->passParameter__.depthAttachment__.value();
@@ -50,16 +54,21 @@ namespace gpu{
       renderingInfo.pStencilAttachment = &pass->passParameter__.stencilAttachment__.value();
     }
     renderingInfo.renderArea = {
-    0,
-    0,
-    gpu::ctx__.pSwapChainContext->extent__.width,
-    gpu::ctx__.pSwapChainContext->extent__.height
+      0,
+      0,
+      gpu::ctx__.pSwapChainContext->extent__.width,
+      gpu::ctx__.pSwapChainContext->extent__.height
     };
     vkCmdBeginRendering(cmd, &renderingInfo);
-    }
+  }
+
+  void cmdDraw(CommandBuffer cmd, uint32_t nodeId)
+  {
+    VkMeshBuffer* node = reinterpret_cast<VkMeshBuffer*>(gpu::ctx__.nodeHash_[nodeId]);
+    node->draw(cmd);
+  }
 }
 #endif
-
 
 
 //

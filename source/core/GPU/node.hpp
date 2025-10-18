@@ -34,7 +34,7 @@ namespace gpu
     LIGHTNING_BUFFER         = 0X00000010,
     G_BUFFER                 = 0x00000020,
     FORWARD                  = 0x00000040,
-    PRESENT_ATTACHMENT       = 0X00000080,
+    SWAPCHAIN_IMAGE       = 0X00000080,
     STAGING                  = 0x00000100,
     VERTEX_BUFFER            = 0x00000200,
     MESH_BUFFER              = 0x00000400,

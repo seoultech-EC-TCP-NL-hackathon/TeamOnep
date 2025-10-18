@@ -37,6 +37,7 @@ public:
   ~ResourcePool();
   void updateDescriptorSet(uint32_t currentFrame);
   void uploadMesh(VkCommandBuffer command, std::string path);
+  Mesh uploadMesh(std::string path);
   void uploadTexture(VkCommandBuffer command, std::string path);
   VulkanTexture *getTextures(bindingIndex index);
 
@@ -67,8 +68,6 @@ private:
   std::unordered_map<Key, std::unique_ptr<Mesh> > meshes_;
   std::unordered_map<Key, std::unique_ptr<Model> > models_;
   std::unordered_map<Key, std::unique_ptr<Material> > materials_;
-
-
   std::vector <std::unique_ptr<VulkanTexture> > textures_;
   std::unique_ptr<SamplerBuilder> samplerBuilder_;
   std::shared_ptr<VulkanTexture> nomal;

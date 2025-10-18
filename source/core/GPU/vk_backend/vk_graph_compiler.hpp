@@ -29,7 +29,6 @@ namespace gpu{
     void writeSync(VkImageNode *image);
     void writeSync(VkBufferNode *fBuffer);
 
-
     bool needBufferBarrier(uint32_t readPipeline,
                            uint32_t readAccessMask,
                            VkBufferNode *readBuffer);

@@ -10,10 +10,15 @@
 // rendering resource -> batch style
 // don't optimize temp resource
 struct Mesh{
-  Mesh (gpu::VkMemoryAllocator & allocator) : allocator(allocator){}
+  Mesh (gpu::VkMemoryAllocator & allocator) : allocator(&allocator){}
   Mesh(const std::vector<VertexAll> &vertices,
        const std::vector<uint32_t> &indices,
        gpu::VkMemoryAllocator &allocator);
+  Mesh(const std::vector<VertexAll> &vertices,
+       const std::vector<uint32_t> &indices
+       );
+  Mesh (Mesh &&other) = default;
+
   ~Mesh();
   bool selected = false;
   const std::vector<VertexAll> &getVertices() const;
@@ -29,7 +34,7 @@ struct Mesh{
   std::unique_ptr<StaticBuffer> indexBuffer;
   std::vector<VertexAll> vertices;
   std::vector<uint32_t> indices;
-  gpu::VkMemoryAllocator &allocator;
+  gpu::VkMemoryAllocator *allocator;
   VkDeviceSize vertexSize;
   VkDeviceSize indiceSize;
 };

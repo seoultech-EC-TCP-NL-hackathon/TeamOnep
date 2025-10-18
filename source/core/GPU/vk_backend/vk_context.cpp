@@ -499,9 +499,8 @@ namespace gpu
     VkPhysicalDeviceBufferDeviceAddressFeatures addressFeature;
     addressFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
       addressFeature.bufferDeviceAddress = VK_TRUE,
-
-      //chaining
       deviceFeatures2.pNext = &indexingFeatures;
+
     indexingFeatures.pNext = &dynamicRenderingFeatures;
     dynamicRenderingFeatures.pNext = &dynamicPipeline2Features;
     dynamicPipeline2Features.pNext = &dynamicPipeline3Features;
@@ -541,7 +540,6 @@ namespace gpu
   {
     IMGUI_CHECKVERSION();
     auto context = ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
     ImGui::StyleColorsDark();
 
     VkDescriptorPoolSize pool_sizes[] = {
@@ -588,13 +586,32 @@ namespace gpu
     UIinfo.ApiVersion = properties.apiVersion;
     UIinfo.Subpass = 0;
     UIinfo.UseDynamicRendering = useDynamicRendering;
+    UIinfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT ;
     UIinfo.PipelineRenderingCreateInfo = {
       VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR
     };
+
     ImGui_ImplGlfw_InitForVulkan(windowh__, true);
     ImGui_ImplVulkan_Init(&UIinfo);
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontDefault();
+    IM_ASSERT(io.Fonts != nullptr);
     spdlog::info("start imgui");
   }
+
+//   // VkContext::~VkContext()
+  // {
+  //   pGraphBuilder.reset();
+  //   pMemoryAllocator.reset();
+  //   pSwapChainContext.reset();
+  //   pResourceAllocator.reset();
+  //   pDiscardPool.reset();
+  //   pDescriptorAllocator.reset();
+  //   vkDestroyDevice(deviceh__, nullptr);
+  //   vkDestroySurfaceKHR(instanceh__, surfaceh__, nullptr);
+  //   vkDestroyInstance(instanceh__, nullptr);
+  //   glfwDestroyWindow(windowh__);
+  // }
 
   VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                          VkDebugUtilsMessageTypeFlagsEXT messageType,

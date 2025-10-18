@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(SPDLOG_COMPILED_LIB ON)
 add_definitions(-DSPDLOG_COMPILED_LIB)
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od")
     add_compile_options(/utf-8)
@@ -28,6 +29,8 @@ add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_options(/wd4005 /wd4996 /wd4834)
 include_directories(
         ${SOURCE_DIR}/resource
+        ${SOURCE_DIR}/core/resource
+        ${SOURCE_DIR}/
         ${SOURCE_DIR}/renderer
         ${SOURCE_DIR}/model
         ${SOURCE_DIR}/core
@@ -80,7 +83,7 @@ set(COMMON_SRC
         source/core/resource_pool_init.cpp
         source/core/resource_pool.cpp
 
-        source/core/render_graph/renderer.cpp
+        source/core/render/renderer.cpp
 
         source/core/importer.cpp
 
@@ -121,7 +124,8 @@ set(COMMON_SRC
         ${VK_BACKEND}/vk_resource_allocator.cpp
         ${VK_BACKEND}/vk_memory_allocator.cpp
         ${VK_BACKEND}/vk_memory_pool.cpp
-        ${VK_BACKEND}/vk_graph_executer.cpp
+        ${VK_BACKEND}/vk_graph.cpp
+        ${VK_BACKEND}/vk_node.cpp
         ${VK_BACKEND}/vk_swapchain.cpp
         ${VK_BACKEND}/vk_descriptor_allocator.cpp
         ${VK_BACKEND}/vk_sampler_builder.cpp
@@ -129,15 +133,22 @@ set(COMMON_SRC
         ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/imgui_draw.cpp
-        ${IMGUI_DIR}/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
         ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_DIR}/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/back/imgui_impl_vulkan.cpp
+
+
+
+
 
         source/resource/sampler_builder.cpp
 
         source/core/GPU/context.cpp
         source/core/GPU/vk_backend/vk_discard_pool.cpp
+        source/core/render/swapchainAttachment.cpp
+        source/core/GPU/vk_backend/vk_node.cpp
+
 )
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 add_executable(exe ${COMMON_SRC})

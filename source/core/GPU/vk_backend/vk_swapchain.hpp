@@ -17,6 +17,7 @@ namespace gpu
     VkSwapchainKHR swapchain__;
     std::vector<VkImage> img__;
     std::vector<VkImageView> imgView__;
+    VkBool32 broked__;
     VkExtent2D extent__;
 
   private:

@@ -14,35 +14,45 @@ gpu::VkResourceAllocator::VkResourceAllocator(VkContext* pCtxt) :
 }
 
 gpu::VkResourceAllocator::~VkResourceAllocator() = default;
-//그냥 바로 올리면 되지않음?
-//tranfer인데 어차피 기다릴게 없는데
-//compile하지 않고 바로 올리고 buffer copy해도 되잔아
-//image, texture, mesh 모두 다 그렇잔아
-void gpu::VkResourceAllocator::buildMeshNode(VkMeshNode* buffer)
+
+void gpu::VkResourceAllocator::buildMeshNode(VkMeshBuffer* buffer)
 {
-  buildBufferHandle(buffer->vSize__,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    &buffer->vertexBuffer__);
+  buffer->vSize__= sizeof(buffer->vertex[0])*buffer->vertex.size();
+  buffer->iSize__= sizeof(buffer->indices[0])*buffer->indices.size();
+  buffer->vData__= buffer->vertex.data();
+  buffer->iData__= buffer->indices.data();
+
+  buffer->vertexBuffer__ = buildBufferHandle(buffer->vSize__,
+                                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+  buffer->vAllocation__ = mBindBuffer(buffer->vertexBuffer__,
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
   VkBufferNode vStaging = getStagingBuffer(buffer->vData__,
                                            buffer->vSize__);
-  buildBufferCopyPass(vStaging.bufferh_,
-                      buffer->vertexBuffer__,
-                      0,
-                      0,
-                      buffer->vSize__);
-  buildBufferHandle(buffer->iSize__,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    &buffer->indexBuffer__);
+
+  uploadCopyPass(vStaging.bufferh_,
+                 buffer->vertexBuffer__,
+                 0,
+                 0,
+                 buffer->vSize__);
+
+  buffer->indexBuffer__ = buildBufferHandle(buffer->iSize__,
+                                            VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+  buffer->iAllocation__ = mBindBuffer(buffer->indexBuffer__,
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
   VkBufferNode iStaging = getStagingBuffer(buffer->iData__,
                                            buffer->iSize__);
 
-  buildBufferCopyPass(iStaging.bufferh_,
-                      buffer->indexBuffer__,
-                      0,
-                      0,
-                      buffer->iSize__);
-
-
+  uploadCopyPass(iStaging.bufferh_,
+                 buffer->indexBuffer__,
+                 0,
+                 0,
+                 buffer->iSize__);
   buffer->hostUpdate__ = true;
   buffer->allocated__ = true;
 }
@@ -52,10 +62,12 @@ gpu::VkBufferNode gpu::VkResourceAllocator::getStagingBuffer(void* data,
 {
   VkBufferNode stagingBuffer{};
   stagingBuffer.data_ = data;
-  buildBufferHandle(size,
-                    VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    &stagingBuffer.bufferh_);
-  mBindBuffer(&stagingBuffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+  stagingBuffer.bufferh_ = buildBufferHandle(size,
+                                             VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+
+  stagingBuffer.allocation__ = mBindBuffer(stagingBuffer.bufferh_,
+                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
   hostUpdate(&stagingBuffer);
   return stagingBuffer;
 }
@@ -71,7 +83,6 @@ void gpu::VkResourceAllocator::buildImageNode(VkImageNode* image)
   imageInfo.extent.depth = 1;
   imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
-
   imageInfo.format = image->format__;
   imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -86,12 +97,30 @@ void gpu::VkResourceAllocator::buildImageNode(VkImageNode* image)
   {
     throw std::runtime_error("failed to create depth image!");
   }
+  image->allocated__ = true;
+  switch (image->mSpace_)
+  {
+    case gpu::MemorySpace::DEVICE_LOCAL:
+    {
+      image->allocation__ = mBindImage(image->imageh__, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      break;
+    }
+    case gpu::MemorySpace::HOST_VISIBLE:
+    {
+      image->allocation__ = mBindImage(image->imageh__,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      break;
+    }
+    default:
+      image->allocation__ = mBindImage(image->imageh__, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      break;
+  }
   VkImageViewCreateInfo view{};
   view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view.image = image->imageh__;
   view.viewType = VK_IMAGE_VIEW_TYPE_2D;
   view.format = image->format__;
-
   view.subresourceRange.aspectMask = image->aspectMask__;
   view.subresourceRange.baseMipLevel = 0;
   view.subresourceRange.levelCount = 1;
@@ -135,29 +164,53 @@ void gpu::VkResourceAllocator::uploadBufferTransferPass(VkBuffer src,
   pCtxt->compiledPass.push_back(copyPass);
 }
 
-void gpu::VkResourceAllocator::buildBufferCopyPass(VkBuffer src,
-                                                   VkBuffer dst,
-                                                   VkDeviceSize srcOffset,
-                                                   VkDeviceSize dstOffset,
-                                                   VkDeviceSize size)
+void gpu::VkResourceAllocator::uploadCopyPass(VkBuffer src,
+                                              VkBuffer dst,
+                                              VkDeviceSize srcOffset,
+                                              VkDeviceSize dstOffset,
+                                              VkDeviceSize size)
 {
   VkPass copyPass{
     .passType = RenderPassType::COPY_PASS,
     .read__ = {},
     .write__ = {},
     .execute =
-    [&src,
-      &dst,
-      &srcOffset,
-      &dstOffset,
-      &size]
+    [this,
+      src,
+      dst,
+      srcOffset,
+      dstOffset,
+      size]
   (VkCommandBuffer cmd)
     {
       VkBufferCopy region{};
-      region.srcOffset = srcOffset;
-      region.dstOffset = dstOffset;
+      region.srcOffset = 0;
+      region.dstOffset = 0;
       region.size = size;
       vkCmdCopyBuffer(cmd, src, dst, 1, &region);
+
+      VkBufferMemoryBarrier barrier{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_NONE_KHR,
+        .dstAccessMask = VK_ACCESS_NONE_KHR,
+        .srcQueueFamilyIndex = pCtxt->graphicsFamailyIdx__,
+        .dstQueueFamilyIndex = pCtxt->graphicsFamailyIdx__,
+        .buffer = dst,
+        .size = size,
+      };
+      barrier.offset = dstOffset;
+      vkCmdPipelineBarrier(
+                           cmd,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT,
+                           VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                           0,
+                           0,
+                           nullptr,
+                           1,
+                           &barrier,
+                           0,
+                           nullptr
+                          );
     }
   };
   copyPass.transitionPass = true;
@@ -248,26 +301,26 @@ void gpu::VkResourceAllocator::buildImageBarrierPass(VkImage img,
   pCtxt->compiledPass.push_back(BarrierPass);
 }
 
-void gpu::VkResourceAllocator::mBindImage(VkImageNode* image,
-                                          VkMemoryPropertyFlags desiredFlag)
+gpu::VkAllocation gpu::VkResourceAllocator::mBindImage(VkImage image,
+                                                       VkMemoryPropertyFlags desiredFlag)
 {
   VkMemoryRequirements memRequirements;
+  vkGetImageMemoryRequirements(pCtxt->deviceh__,
+                               image,
+                               &memRequirements);
   VkMemoryPropertyFlags properties = desiredFlag;
 
-  vkGetImageMemoryRequirements(pCtxt->deviceh__,
-                               image->imageh__,
-                               &memRequirements);
-  VkAllocation allocation = pCtxt->pMemoryAllocator->allocate(memRequirements,
-                                                              properties);
-
-  mAlloc_[image->nodeId_] = allocation;
+  gpu::VkAllocation allocation = pCtxt->pMemoryAllocator->allocate(memRequirements,
+                                                                   properties);
   if (vkBindImageMemory(pCtxt->deviceh__,
-                        image->imageh__,
+                        image,
                         allocation.memory__,
                         allocation.offset__) != VK_SUCCESS)
+
   {
     throw std::runtime_error("fail to allocate depth memroy");
   }
+  return allocation;
 }
 
 
@@ -276,60 +329,44 @@ VkDeviceSize gpu::VkResourceAllocator::alignUp(VkDeviceSize v, VkDeviceSize a) c
   return (v + (a - 1)) & ~(a - 1);
 }
 
-void gpu::VkResourceAllocator::mBindBuffer(VkBufferNode* buffer,
-                                           VkMemoryPropertyFlags desiredFlag)
-{
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(pCtxt->deviceh__, buffer->bufferh_, &memRequirements);
-  VkMemoryPropertyFlags properties = desiredFlag;
-
-  VkAllocation allocation = pCtxt->pMemoryAllocator->allocate(memRequirements, properties);
-
-  if (vkBindBufferMemory(pCtxt->deviceh__,
-                         buffer->bufferh_,
-                         allocation.memory__,
-                         allocation.offset__) != VK_SUCCESS)
-  {
-    spdlog::info("falil to bind buffer to memory");
-  }
-}
 
 void gpu::VkResourceAllocator::hostUpdate(VkBufferNode* buffer__)
 {
   void* data = nullptr;
-  VkAllocation* alloc = &mAlloc_[buffer__->nodeId_];
+  VkAllocation alloc = buffer__->allocation__;
   vkMapMemory(pCtxt->deviceh__,
-              alloc->memory__,
-              alloc->offset__,
-              alloc->size,
+              alloc.memory__,
+              alloc.offset__,
+              alloc.size,
               0,
               &data);
   std::memcpy(data,
               buffer__->data_,
-              (size_t)buffer__->size_);
+              (size_t)alloc.size);
 
   vkUnmapMemory(pCtxt->deviceh__,
-                alloc->memory__);
+                alloc.memory__);
 }
 
 
-void gpu::VkResourceAllocator::buildBufferHandle(VkDeviceSize size,
-                                                 VkBufferUsageFlags usage,
-                                                 VkBuffer* pBuffer)
+VkBuffer gpu::VkResourceAllocator::buildBufferHandle(VkDeviceSize size,
+                                                     VkBufferUsageFlags usage)
 {
   VkBufferCreateInfo bufferInfo{
     .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
     .size = size,
-    .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+    .usage = usage,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
+  VkBuffer buffer;
   if (vkCreateBuffer(pCtxt->deviceh__,
                      &bufferInfo,
                      nullptr,
-                     pBuffer) != VK_SUCCESS)
+                     &buffer) != VK_SUCCESS)
   {
     throw std::runtime_error("failed to create buffer!");
   }
+  return buffer;
 }
 
 //void gpu::VkResourceAllocator::buildKtxTexture(gpu::VkTextureNode* texture)
@@ -376,9 +413,9 @@ void gpu::VkResourceAllocator::buildTexture(gpu::VkTextureNode* texture)
   if (vkCreateImage(pCtxt->deviceh__, &imageInfo, nullptr, &texture->img__) != VK_SUCCESS)
   {
     spdlog::info("error ");
-    std::runtime_error("fail to make texture Image buffer");
+    throw std::runtime_error("fail to make texture Image buffer");
   }
-  mBindImage(texture,
+  mBindImage(texture->imageh__,
              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   VkImageViewCreateInfo viewInfo{};
@@ -407,4 +444,23 @@ void gpu::VkResourceAllocator::buildTexture(gpu::VkTextureNode* texture)
   //buildImageBarrierPass(texture->imageh__ )
   //buildImageCopyPass.
   //buildImageBarrierPass
+}
+
+
+gpu::VkAllocation gpu::VkResourceAllocator::mBindBuffer(VkBuffer buffer,
+                                                        VkMemoryPropertyFlags desiredFlag)
+{
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(pCtxt->deviceh__,
+                                buffer,
+                                &memRequirements);
+  VkAllocation allocation = pCtxt->pMemoryAllocator->allocate(memRequirements, desiredFlag);
+  if (vkBindBufferMemory(pCtxt->deviceh__,
+                         buffer,
+                         allocation.memory__,
+                         allocation.offset__) != VK_SUCCESS)
+  {
+    spdlog::info("falil to bind buffer to memory");
+  }
+  return allocation;
 }

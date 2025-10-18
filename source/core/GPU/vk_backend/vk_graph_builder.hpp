@@ -6,7 +6,7 @@
 #define MYPROJECT_VK_GRAPH_BUILDER_HPP
 #include <memory>
 #include <unordered_map>
-
+#include "util/unique.hpp"
 #include "vk_node.hpp"
 //#include "vk_sampler_builder"
 
@@ -37,22 +37,21 @@ namespace gpu
     void uploadCopyPass(VkNode* read,
                         VkNode* write);
 
-    VkNodeId buildSwapchainImage();
+    void buildSwapchainImage();
     VkNodeId buildBufferHandle(std::unique_ptr<VkBufferNode>& VkFBuffer);
+    VkNodeId buildMeshBuffer(std::unique_ptr<VkMeshBuffer>& buffer);
     VkNodeId buildImageHandle(std::unique_ptr<VkImageNode>& image);
+    VkNodeId getSwapchainImage();
     VkNodeId buildTexture(VkTextureNode* texture);
     VkNodeId buildBatch();
 
   private:
+    std::vector<VkDependencyFlags> dependency_;
     std::vector<std::unique_ptr<gpu::VkNode>> nodes_;
     std::vector<std::unique_ptr<gpu::VkPass>> passes_;
-
+    std::vector<VkNodeId> swapchainHandle;
     VkNodeId nodeId_ = 0;
     VkPassId passId_ = 0;
-    struct{
-      VkNodeId frameSwapchain;
-      VkBool32 dirty_;
-    } frame;
     VkContext* pCtxt_;
 
     inline void flag();

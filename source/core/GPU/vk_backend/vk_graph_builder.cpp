@@ -10,9 +10,9 @@
 namespace gpu
 {
   VkGraphBuilder::VkGraphBuilder(VkContext* pCtxt) :
-    pCtxt_(pCtxt),
-    frame{}
+    pCtxt_(pCtxt)
   {
+    buildSwapchainImage();
   }
 
   VkGraphBuilder::~VkGraphBuilder() = default;
@@ -39,9 +39,9 @@ namespace gpu
     VkPass* pass = pCtxt_->passHash_[passId];
     VkNode* writeNode = pCtxt_->nodeHash_[write];
     VkNode* readNode = pCtxt_->nodeHash_[read];
-    writeNode->lastWriter__= pCtxt_->passHash_[passId];
     pass->write__.push_back(writeNode);
     pass->read__.push_back(readNode);
+
     flag();
   }
 
@@ -57,7 +57,6 @@ namespace gpu
   {
     VkPass* pass = pCtxt_->passHash_[passId];
     VkNode* writeNode = pCtxt_->nodeHash_[write];
-    writeNode->lastWriter__= pCtxt_->passHash_[passId];
     pass->write__.push_back(writeNode);
     flag();
   }
@@ -78,10 +77,24 @@ namespace gpu
     //  pCtxt->nodeHash_[staging->nodeId_] = staging.get();
     //  //(std::move(staging));
     //}
-    mns::uptr<VkNode> node = (std::move(buffer));
-
+    nodes_.push_back(std::move(buffer));
     flag();
-    return node->nodeId_;
+    return nodeId_ - 1;
+  }
+
+  VkNodeId gpu::VkGraphBuilder::buildMeshBuffer(mns::uptr<gpu::VkMeshBuffer>& buffer)
+  {
+    uint32_t id = nodeId_++;
+    buffer->nodeId_ = id;
+    pCtxt_->nodeHash_[buffer->nodeId_] = buffer.get();
+    buffer->type_ = gpu::ResourceType::MESH;
+    buffer->mFlags_ = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    buffer->usage_ = gpu::ResourceUsage::MESH_BUFFER;
+    buffer->nodeName_ = "buffer test";
+    buffer->lastWriter__ = nullptr;
+    nodes_.push_back(std::move(buffer));
+    flag();
+    return id;
   }
 
   // format isn't determine
@@ -90,47 +103,43 @@ namespace gpu
     uint32_t id = nodeId_;
     image->nodeId_ = nodeId_++;
     pCtxt_->nodeHash_[image->nodeId_] = image.get();
-    if (image->mSpace_ == MemorySpace::DEVICE_LOCAL)
-    {
-      image->mFlags_ = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    }
     nodes_.push_back(std::move(image));
     return id;
     flag();
   }
 
-  VkNodeId VkGraphBuilder::buildSwapchainImage()
+  VkNodeId VkGraphBuilder::getSwapchainImage()
   {
-    if (frame.dirty_)
+    if (pCtxt_->pSwapChainContext->broked__)
     {
-      return frame.frameSwapchain;
+      buildSwapchainImage();
     }
-    mns::uptr<VkImageNode> swapchainImage = std::make_unique<VkImageNode>();
-    swapchainImage->allocated__ = true;
-    swapchainImage->binded__ = true;
-    swapchainImage->format__ = pCtxt_->pSwapChainContext->imgFormat__;
-
-    swapchainImage->imageh__ = pCtxt_->pSwapChainContext->img__
-      [pCtxt_->renderingContext.currentSwapchainIndex__];
-    swapchainImage->imageView__ = pCtxt_->pSwapChainContext->imgView__
-      [pCtxt_->renderingContext.currentSwapchainIndex__];
-    swapchainImage->levelCount__ = 1;
-    swapchainImage->type_ = ResourceType::IMAGE;
-    swapchainImage->usage_ = ResourceUsage::PRESENT_ATTACHMENT;
-    swapchainImage->lifetime = VkResourceLifetime::PERSISTENT;
-    swapchainImage->aspectMask__ = VK_IMAGE_ASPECT_COLOR_BIT;
-    swapchainImage->height__ = pCtxt_->pSwapChainContext->extent__.height;
-    swapchainImage->width__ = pCtxt_->pSwapChainContext->extent__.width;
-    swapchainImage->nodeId_ = nodeId_++;
-    pCtxt_->nodeHash_[swapchainImage->nodeId_] = swapchainImage.get();
-    uint32_t id = swapchainImage->nodeId_;
-    nodes_.push_back(std::move(swapchainImage));
-    mns::uptr<VkPass> presentPass = std::make_unique<VkPass>();
-    presentPass->passType = RenderPassType::PRESENT_PASS;
-    VkPassId presnt = addPass(presentPass);
-    addReadResource(presnt, id);
-    frame.dirty_ = true;
-    flag();
-    return id;
+    return swapchainHandle[pCtxt_->renderingContext.currentFrame__];
+  }
+  void VkGraphBuilder::buildSwapchainImage()
+  {
+    for (uint32_t i = 0; i < pCtxt_->pSwapChainContext->img__.size(); ++i)
+    {
+      mns::uptr<VkImageNode> swapchainImage = std::make_unique<VkImageNode>();
+      swapchainImage->allocated__ = true;
+      swapchainImage->binded__ = true;
+      swapchainImage->format__ = pCtxt_->pSwapChainContext->imgFormat__;
+      swapchainImage->imageh__ = pCtxt_->pSwapChainContext->img__[i];
+      swapchainImage->imageView__ = pCtxt_->pSwapChainContext->imgView__[i];
+      swapchainImage->levelCount__ = 1;
+      swapchainImage->type_ = ResourceType::IMAGE;
+      swapchainImage->usage_ = ResourceUsage::G_BUFFER;
+      swapchainImage->lifetime = VkResourceLifetime::PERSISTENT;
+      swapchainImage->aspectMask__ = VK_IMAGE_ASPECT_COLOR_BIT;
+      swapchainImage->height__ = pCtxt_->pSwapChainContext->extent__.height;
+      swapchainImage->width__ = pCtxt_->pSwapChainContext->extent__.width;
+      swapchainImage->nodeId_ = nodeId_++;
+      swapchainImage->currentLayout__ = VK_IMAGE_LAYOUT_UNDEFINED;
+      pCtxt_->nodeHash_[swapchainImage->nodeId_] = swapchainImage.get();
+      uint32_t id = swapchainImage->nodeId_;
+      nodes_.push_back(std::move(swapchainImage));
+      swapchainHandle.push_back(id);
+      flag();
+    }
   }
 }

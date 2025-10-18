@@ -38,7 +38,7 @@ void gpu::VkDiscardPool::registerResource(std::vector<VkNode*>& frameResource)
           vkDestroyImage(pCtxt_->deviceh__,
                          node->imageh__,
                          nullptr);
-          VkAllocation mAlloc = pCtxt_->pResourceAllocator->mAlloc_[rec->nodeId_];
+          VkAllocation mAlloc = node->allocation__;
           pCtxt_->pMemoryAllocator->free(mAlloc, mAlloc.size);
         };
       }
@@ -50,7 +50,7 @@ void gpu::VkDiscardPool::registerResource(std::vector<VkNode*>& frameResource)
           vkDestroyBuffer(pCtxt_->deviceh__,
                           node->bufferh_,
                           nullptr);
-          VkAllocation mAlloc = pCtxt_->pResourceAllocator->mAlloc_[rec->nodeId_];
+          VkAllocation mAlloc = node->allocation__;
           pCtxt_->pMemoryAllocator->free(mAlloc, mAlloc.size);
         };
       }

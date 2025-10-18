@@ -6,7 +6,7 @@
 
 DynaMesh::DynaMesh(Mesh *mesh) :
   mesh_(mesh),
-  pAllocator(&mesh->allocator)
+  pAllocator(mesh->allocator)
 {
   reAllocate();
 }

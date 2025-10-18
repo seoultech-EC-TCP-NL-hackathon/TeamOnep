@@ -6,7 +6,7 @@
 gpu::VkSemaphorePool::VkSemaphorePool(VkContext* pCtxt) :
   pCtxt(pCtxt),
   MAX_FRAMES_IN_FLIGHT__(pCtxt->renderingContext.maxInflight__),
-  semaphores__(pCtxt->renderingContext.maxInflight__)
+  semaphores__(pCtxt->renderingContext.maxInflight__ )
 {
   VkSemaphoreCreateInfo createInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT__; ++i)
@@ -59,8 +59,8 @@ void gpu::VkSemaphorePool::recreate()
 
 gpu::VkFencePool::VkFencePool(VkContext* pCtxt, bool signaled) :
   pCtxt(pCtxt),
-  MAX_FRAMES_IN_FLIGHT__(pCtxt->renderingContext.maxInflight__),
-  fences(pCtxt->renderingContext.maxInflight__)
+  MAX_FRAMES_IN_FLIGHT__(pCtxt->renderingContext.maxInflight__ ),
+  fences(pCtxt->renderingContext.maxInflight__ )
 {
   VkFenceCreateInfo fenceInfo{};
   fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

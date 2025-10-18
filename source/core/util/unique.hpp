@@ -15,6 +15,11 @@ namespace mns{
     {
     return std::make_unique<UPTR>();
     }
+  template<typename UPTR>
+ uptr<UPTR> mUptr(UPTR&& obj)
+  {
+    return std::make_unique<UPTR>(std::move(obj));
+  }
 
 }
 #endif //MYPROJECT_UNIQUE_BUILD_HPP

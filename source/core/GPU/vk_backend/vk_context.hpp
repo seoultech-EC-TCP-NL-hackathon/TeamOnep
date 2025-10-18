@@ -47,8 +47,6 @@ namespace gpu{
     std::unordered_map<VkPassId, VkPass *> passHash_;
     std::unordered_map<VkNodeId, VkNode *> nodeHash_;
 
-    std::unordered_map<VkNodeId, VkNode* >read__;
-    std::unordered_map<VkNodeId, VkNode* >write__;
 
     std::unique_ptr<gpu::VkGraphBuilder> pGraphBuilder;
     std::unique_ptr<gpu::VkMemoryAllocator> pMemoryAllocator;
@@ -60,7 +58,7 @@ namespace gpu{
     //std::unique_ptr<GPU::VkDescriptorLayoutBuilder> pLayoutBuilder_;
 
     struct{
-      std::vector<VkMeshNode *> batches;
+      std::vector<VkMeshBuffer *> batches;
     } batch;
 
     struct{
@@ -72,6 +70,7 @@ namespace gpu{
   private:
     void loadDeviceContext();
     void loadImGuiGPUContext();
+   // ~VkContext();
   };
 }
 

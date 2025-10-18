@@ -4,7 +4,7 @@ Mesh::~Mesh() {}
 
 Mesh::Mesh(const std::vector<VertexAll> &vertices,
            const std::vector<uint32_t> &indices,
-           gpu::VkMemoryAllocator &allocator) : vertices(vertices), indices(indices), allocator(allocator)
+           gpu::VkMemoryAllocator &allocator) : vertices(vertices), indices(indices), allocator(&allocator)
 {
   recenterMesh();
   reNomalCompute();
@@ -16,6 +16,11 @@ Mesh::Mesh(const std::vector<VertexAll> &vertices,
   indexBuffer->getStagingBuffer(indices.data());
   vertexBuffer->createMainBuffer();
   indexBuffer->createMainBuffer();
+}
+
+Mesh::Mesh(const std::vector<VertexAll>& vertices, const std::vector<uint32_t>& indices):allocator(nullptr)
+{
+
 }
 
 void Mesh::copyBuffer(VkCommandBuffer commandBuffer) const

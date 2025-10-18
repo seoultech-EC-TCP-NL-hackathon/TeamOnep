@@ -13,12 +13,7 @@ class CommandBuffer; // 커맨드 버퍼 추상
 class DescriptorSet; // 디스크립터 세트/셋업 추상
 class PipelineLayout;
 
-// 정점 기본 레이아웃(필요에 따라 확장)
-struct VertexAll{
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec2 uv;
-};
+
 
 // Morph target: 정점 오프셋(positions, normals) 집합.
 // positions/normals 는 target vertex count 에 맞춰져야 함.

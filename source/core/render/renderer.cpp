@@ -1,14 +1,14 @@
-
 #include "../GPU/context.hpp"
 #include "renderer.hpp"
+#include "swapchainAttachment.hpp"
 
 RenderingSystem::RenderingSystem(RenderInitInfo info) : device_h(info.device_h),
-                                                        renderpass_h(info.renderPass),
                                                         pResourceManager(*info.resourceManager),
                                                         pDescriptorSetLayouts(info.pDescriptorSetLayouts),
                                                         descriptorLayoutCount(info.descriptorSetLayoutCount)
 {
-  vkCmdSetPolygonModeEXT = (PFN_vkCmdSetPolygonModeEXT) vkGetDeviceProcAddr(gpu::ctx__.deviceh__ , "vkCmdSetPolygonModeEXT");
+  vkCmdSetPolygonModeEXT = (PFN_vkCmdSetPolygonModeEXT)vkGetDeviceProcAddr(gpu::ctx__.deviceh__,
+                                                                           "vkCmdSetPolygonModeEXT");
   if (!vkCmdSetPolygonModeEXT)
   {
     throw std::runtime_error("vkCmdSetPolygonModeEXT not available!");
@@ -18,24 +18,65 @@ RenderingSystem::RenderingSystem(RenderInitInfo info) : device_h(info.device_h),
 
   pipelineLayout_h = pResourceManager.pipelinePool_->createPipelineLayout(pDescriptorSetLayouts, descriptorLayoutCount);
   PipelineProgram program{};
-  VkFormat swapchainfFormat      = gpu::ctx__.pSwapChainContext->imgFormat__;
+  VkFormat swapchainfFormat = gpu::ctx__.pSwapChainContext->imgFormat__;
   program.pColorAttachmentFormat = &swapchainfFormat;
-  program.renderPass             = renderpass_h;
-  program.pipelineLayout         = pipelineLayout_h;
-  program.vertexType             = VertexType::ALL;
-  program.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-  program.vertShaderModule       = vShader;
-  program.fragShaderModule       = fshader;
-  pipeline_h                     = pResourceManager.pipelinePool_->createPipeline(program);
+  program.renderPass = VK_NULL_HANDLE;
+  program.pipelineLayout = pipelineLayout_h;
+  program.vertexType = VertexType::ALL;
+  program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  program.vertShaderModule = vShader;
+  program.fragShaderModule = fshader;
+  pipeline_h = pResourceManager.pipelinePool_->createPipeline(program);
 
   VkShaderModule vBackground = pResourceManager.vertexShaderPool->getShader(VertBackPath, shaderc_vertex_shader);
   VkShaderModule fBackground = pResourceManager.fragShaderPool->getShader(fragBackPath, shaderc_fragment_shader);
 
   program.vertShaderModule = vBackground;
   program.fragShaderModule = fBackground;
-  program.vertexType       = VertexType::BACKGROUND;
-  backgroundPipeline_      = pResourceManager.pipelinePool_->createPipeline(program);
-  drawBackground           = VK_TRUE;
+  program.vertexType = VertexType::BACKGROUND;
+  backgroundPipeline_ = pResourceManager.pipelinePool_->createPipeline(program);
+  drawBackground = VK_TRUE;
+  for (uint32_t i=0; i<gpu::ctx__ .renderingContext.maxInflight__; i++)
+  {
+    depthAttachmentHandle_.push_back(SwapchainAttachment::buildDepthAttachment());
+  }
+}
+
+void RenderingSystem::uploadRenderPass()
+{
+  gpu::NodeId swapchain = gpu::ctx__.pGraphBuilder->getSwapchainImage();
+  gpu::NodeId depth = SwapchainAttachment::buildDepthAttachment();
+  mns::uptr<gpu::RenderPass> pass = mns::mUptr<gpu::RenderPass>();
+  pass->passType = gpu::RenderPassType::FORWARD_PASS;
+  gpu::RenderPass* ptr = pass.get();
+  ptr->dependency__ = {};
+  ptr->dependent__ = {};
+  ptr->linkCount = 0;
+  pass->execute = [this, ptr](gpu::CommandBuffer cmd)
+  {
+    gpu::cmdBeginRendering(cmd, ptr);
+    pushConstant(cmd);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_h);
+    vkCmdSetPolygonModeEXT(cmd, polygonMode);
+    vkCmdSetDepthTestEnable(cmd, depthTest);
+    camera->camUpdate();
+    gpu::cmdSetViewports(cmd,
+                         0.0,
+                         0.0,
+                         viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width,
+                         viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height
+                        );
+    for (auto handle : drawHandle_)
+      gpu::cmdDraw(cmd, handle);
+    gpu::cmdEndRendering(cmd);
+  };
+  gpu::PassId renderPass = gpu::ctx__.pGraphBuilder->addPass(pass);
+  for (auto handle : drawHandle_)
+  {
+    gpu::ctx__.pGraphBuilder->addReadResource(renderPass, handle);
+  }
+  gpu::ctx__.pGraphBuilder->addWriteResource(renderPass, swapchain);
+  //gpu::ctx__.pGraphBuilder->addWriteResource(renderPass, depth);
 }
 
 void RenderingSystem::pushConstant(VkCommandBuffer command)
@@ -59,10 +100,10 @@ void RenderingSystem::setUp(VkCommandBuffer cmd)
   vkCmdSetPolygonModeEXT(cmd, polygonMode);
   vkCmdSetDepthTestEnable(cmd, depthTest);
   camera->camUpdate();
-  viewport.x        = 0.0f;
-  viewport.y        = 0.0f;
-  viewport.width    = (float) gpu::ctx__.pSwapChainContext->extent__.width;
-  viewport.height   = (float) gpu::ctx__.pSwapChainContext->extent__.height;
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width;
+  viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -78,10 +119,10 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
     vkCmdSetPolygonModeEXT(cmd, polygonMode);
     vkCmdSetDepthTestEnable(cmd, depthTest);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipeline_);
-    viewport.x        = 0.0f;
-    viewport.y        = 0.0f;
-    viewport.width    = (float) gpu::ctx__.pSwapChainContext->extent__.width;
-    viewport.height   = (float) gpu::ctx__.pSwapChainContext->extent__.height;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width;
+    viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -100,10 +141,10 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
     {
       pushConstant(cmd);
       camera->camUpdate();
-      viewport.x        = 0.0f;
-      viewport.y        = 0.0f;
-      viewport.width    = (float) gpu::ctx__.pSwapChainContext->extent__.width;
-      viewport.height   = (float) gpu::ctx__.pSwapChainContext->extent__.height;
+      viewport.x = 0.0f;
+      viewport.y = 0.0f;
+      viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width;
+      viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height;
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
       vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -112,7 +153,7 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
       scissor.extent = gpu::ctx__.pSwapChainContext->extent__;
       vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-      for (auto &mesh: pResourceManager.meshes_)
+      for (auto& mesh : pResourceManager.meshes_)
       {
         if (mesh.second == nullptr) return;
         mesh.second->bind(cmd);
@@ -122,13 +163,13 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
     }
     case (ViewMode::MULTI):
     {
-      auto extent      = gpu::ctx__.pSwapChainContext->extent__;
-      float halfWidth  = extent.width / 2.0f;
+      auto extent = gpu::ctx__.pSwapChainContext->extent__;
+      float halfWidth = extent.width / 2.0f;
       float halfHeight = extent.height / 2.0f;
       for (uint32_t i = 0; i < 4; i++)
       {
-        viewport.width    = halfWidth;
-        viewport.height   = halfHeight;
+        viewport.width = halfWidth;
+        viewport.height = halfHeight;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -139,7 +180,7 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
         scissor.offset = {static_cast<int32_t>(viewport.x), static_cast<int32_t>(viewport.y)};
         scissor.extent = {static_cast<uint32_t>(viewport.width), static_cast<uint32_t>(viewport.height)};
         vkCmdSetScissor(cmd, 0, 1, &scissor);
-        for (auto &mesh: pResourceManager.meshes_)
+        for (auto& mesh : pResourceManager.meshes_)
         {
           mesh.second->bind(cmd);
           mesh.second->draw(cmd);
@@ -152,10 +193,10 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
       pushConstant(cmd);
       camera->onVR(true);
       pResourceManager.updateDescriptorSet(currenFrame);
-      viewport.x        = 0.0f;
-      viewport.y        = 0.0f;
-      viewport.width    = (float) gpu::ctx__.pSwapChainContext->extent__.width / 2;
-      viewport.height   = (float) gpu::ctx__.pSwapChainContext->extent__.height;
+      viewport.x = 0.0f;
+      viewport.y = 0.0f;
+      viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width / 2;
+      viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height;
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
       vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -164,7 +205,7 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
       scissor.extent = gpu::ctx__.pSwapChainContext->extent__;
       vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-      for (auto &mesh: pResourceManager.meshes_)
+      for (auto& mesh : pResourceManager.meshes_)
       {
         if (mesh.second == nullptr) return;
         mesh.second->bind(cmd);
@@ -173,10 +214,10 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
       pushConstant(cmd);
       camera->onVR(false);
       pResourceManager.updateDescriptorSet(currenFrame);
-      viewport.x        = gpu::ctx__.pSwapChainContext->extent__.width / 2;
-      viewport.y        = 0.0f;
-      viewport.width    = (float) gpu::ctx__.pSwapChainContext->extent__.width / 2;
-      viewport.height   = (float) gpu::ctx__.pSwapChainContext->extent__.height;
+      viewport.x = gpu::ctx__.pSwapChainContext->extent__.width / 2;
+      viewport.y = 0.0f;
+      viewport.width = (float)gpu::ctx__.pSwapChainContext->extent__.width / 2;
+      viewport.height = (float)gpu::ctx__.pSwapChainContext->extent__.height;
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
       vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -185,7 +226,7 @@ void RenderingSystem::draw(VkCommandBuffer cmd, uint32_t currenFrame)
       scissor.extent = gpu::ctx__.pSwapChainContext->extent__;
       vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-      for (auto &mesh: pResourceManager.meshes_)
+      for (auto& mesh : pResourceManager.meshes_)
       {
         if (mesh.second == nullptr) return;
         mesh.second->bind(cmd);
