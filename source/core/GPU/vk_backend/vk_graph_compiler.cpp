@@ -21,8 +21,9 @@ namespace gpu
   void VkGraphCompiler::compileGraph()
   {
     pCtxt->compiledPass.clear();
+    VkNode* node = pCtxt->nodeHash_[pCtxt->pGraphBuilder->getSwapchainImage()];
+    VkImageNode* swapchain = reinterpret_cast<VkImageNode*>(node);
     std::vector<VkPass*>& passes = pCtxt->uploadedPass;
-
     for (auto* pass : passes)
     {
       for (auto* read__ : pass->read__)
@@ -78,8 +79,7 @@ namespace gpu
     //{
     //  frameResources.push_back(node);
     //}
-    VkNode* node = pCtxt->nodeHash_[pCtxt->pGraphBuilder->getSwapchainImage()];
-    VkImageNode* swapchain = reinterpret_cast<VkImageNode*>(node);
+
     VkPass barrierPass;
     barrierPass.passType = VkRenderPassType::BARRIER_PASS;
     barrierPass.execute = buildImageBarrier(swapchain->currentAccessMask__,
@@ -91,6 +91,9 @@ namespace gpu
                                             pCtxt->graphicsFamailyIdx__,
                                             pCtxt->graphicsFamailyIdx__,
                                             swapchain);
+    swapchain->currentLayout__ = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    swapchain->currentAccessMask__ = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    swapchain->currentPipeline__ = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     pCtxt->compiledPass.push_back(barrierPass);
     //pCtxt->pDiscardPool->registerResource(frameResources);
     pCtxt->uploadedPass.clear();

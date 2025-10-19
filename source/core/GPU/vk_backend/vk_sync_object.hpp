@@ -10,9 +10,7 @@ namespace gpu
   struct VkSemaphorePool{
   public:
     VkSemaphorePool(VkContext* pCtxt);
-
     ~VkSemaphorePool();
-
     void recreate();
     VkContext* pCtxt;
     uint32_t MAX_FRAMES_IN_FLIGHT__;

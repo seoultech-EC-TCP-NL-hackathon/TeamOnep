@@ -19,7 +19,7 @@
 namespace gpu
 {
   class VkContext;
-
+  using SwapchainHandle = uint32_t;
   class VkGraphBuilder{
     friend class VkScheduler ;
   public:
@@ -49,7 +49,8 @@ namespace gpu
     std::vector<VkDependencyFlags> dependency_;
     std::vector<std::unique_ptr<gpu::VkNode>> nodes_;
     std::vector<std::unique_ptr<gpu::VkPass>> passes_;
-    std::vector<VkNodeId> swapchainHandle;
+    std::vector<SwapchainHandle> swapchainHandle;
+    VkPass swapchainPass;
     VkNodeId nodeId_ = 0;
     VkPassId passId_ = 0;
     VkContext* pCtxt_;

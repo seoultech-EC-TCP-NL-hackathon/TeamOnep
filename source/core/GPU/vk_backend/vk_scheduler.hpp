@@ -24,13 +24,16 @@ namespace gpu
     void runGraphicsPipeline();
     VkBool32 dirty_;
   private:
+    uint32_t lastFrame_ = 0;
     gpu::VkGraph graphs_;
     gpu::VkGraphCompiler graphCompiler_;
     gpu::VkCommandBufferPool commandBufferPool_;
     gpu::VkSemaphorePool imageAvailiableSemaphorePool_;
     gpu::VkSemaphorePool renderFinishSemaphorePool_;
-    gpu::VkFencePool fencePool_;
+    gpu::VkFencePool maxInflightFence_;
+
     gpu::VkContext* pCtxt_;
+    PFN_vkReleaseSwapchainImagesEXT vkReleaseSwapchainImagesEXT = nullptr;
   };
 }
 #endif //_VK_RENDERER_HPP_

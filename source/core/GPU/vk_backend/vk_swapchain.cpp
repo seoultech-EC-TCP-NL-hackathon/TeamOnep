@@ -142,7 +142,7 @@ VkPresentModeKHR gpu::VkSwapchainContext::choosePresentMode(VkPhysicalDevice phy
   vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &count, modes.data());
   for (const auto& mode : modes)
   {
-    if (mode == VK_PRESENT_MODE_FIFO_KHR)
+    if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
     {
       return mode;
     }

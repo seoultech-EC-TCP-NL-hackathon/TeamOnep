@@ -51,8 +51,8 @@ public:
   }
 
 private:
+  std::vector<gpu::SwapchainHandle> swapchainHandle_;
   std::vector<gpu::NodeId> drawHandle_;
-  std::vector<gpu::NodeId> swapchainHandle_;
   std::vector<gpu::NodeId> depthAttachmentHandle_;
   VkPhysicalDevice physical_device_h;
   VkDevice device_h;

@@ -227,10 +227,10 @@ namespace gpu
       populateDebugMessengerCreateInfo(debugMessengerCreateInfo);
       vkCreateDebugUtilsMessengerEXT_ptr =
         reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_h,
-             "vkCreateDebugUtilsMessengerEXT"));
+          "vkCreateDebugUtilsMessengerEXT"));
       vkDestroyDebugUtilsMessengerEXT_ptr
         = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_h,
-             "vkDestroyDebugUtilsMessengerEXT"));
+          "vkDestroyDebugUtilsMessengerEXT"));
       g_pfnSetDebugUtilsObjectNameEXT
         = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance_h, "vkSetDebugUtilsObjectNameEXT");
       g_pfnSetDebugUtilsObjectTagEXT
@@ -281,7 +281,12 @@ namespace gpu
       std::set<std::string> engineRequiredExtension = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-        VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME
+        VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+        VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+        VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+
 
       };
 
@@ -412,8 +417,19 @@ namespace gpu
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
       VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
       VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+      VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
       VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-      VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+      VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+      VK_NV_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
+      VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      VK_EXT_MESH_SHADER_EXTENSION_NAME,
+      VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+      VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
+      VK_KHR_PRESENT_ID_EXTENSION_NAME,
+      VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+
     };
     uint32_t deviceExtensionCount;
     vkEnumerateDeviceExtensionProperties(physical_device_h, nullptr, &deviceExtensionCount, nullptr);
@@ -498,14 +514,31 @@ namespace gpu
 
     VkPhysicalDeviceBufferDeviceAddressFeatures addressFeature;
     addressFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-      addressFeature.bufferDeviceAddress = VK_TRUE,
-      deviceFeatures2.pNext = &indexingFeatures;
+      addressFeature.bufferDeviceAddress = VK_TRUE;
 
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicReadFeature;
+    dynamicReadFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES;
+    dynamicReadFeature.dynamicRendering = VK_TRUE;
+
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance1Features = {};
+    swapchainMaintenance1Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
+    swapchainMaintenance1Features.swapchainMaintenance1 = true;
+
+    VkPhysicalDevicePresentWaitFeaturesKHR presentWait{};
+    presentWait.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
+    presentWait.presentWait = VK_TRUE;
+
+
+    deviceFeatures2.pNext = &indexingFeatures;
     indexingFeatures.pNext = &dynamicRenderingFeatures;
     dynamicRenderingFeatures.pNext = &dynamicPipeline2Features;
     dynamicPipeline2Features.pNext = &dynamicPipeline3Features;
     dynamicPipeline3Features.pNext = &addressFeature;
-    addressFeature.pNext = nullptr;
+    addressFeature.pNext = &dynamicReadFeature;
+    dynamicReadFeature.pNext = &swapchainMaintenance1Features;
+    swapchainMaintenance1Features.pNext = &presentWait;
+    presentWait.pNext = nullptr;
+
 
     vkGetPhysicalDeviceFeatures2(physical_device_h, &deviceFeatures2);
 
@@ -534,6 +567,7 @@ namespace gpu
     graphicsQh__ = graphics_q;
     graphicsFamailyIdx__ = graphics_family;
     presentFamilyIdx__ = graphics_family;
+
   }
 
   void VkContext::loadImGuiGPUContext()
@@ -586,7 +620,7 @@ namespace gpu
     UIinfo.ApiVersion = properties.apiVersion;
     UIinfo.Subpass = 0;
     UIinfo.UseDynamicRendering = useDynamicRendering;
-    UIinfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT ;
+    UIinfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     UIinfo.PipelineRenderingCreateInfo = {
       VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR
     };
@@ -599,7 +633,7 @@ namespace gpu
     spdlog::info("start imgui");
   }
 
-//   // VkContext::~VkContext()
+  //   // VkContext::~VkContext()
   // {
   //   pGraphBuilder.reset();
   //   pMemoryAllocator.reset();

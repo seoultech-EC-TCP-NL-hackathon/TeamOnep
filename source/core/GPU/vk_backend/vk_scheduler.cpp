@@ -10,11 +10,19 @@ gpu::VkScheduler::VkScheduler(gpu::VkContext* context) :
   pCtxt_(context),
   imageAvailiableSemaphorePool_(context),
   renderFinishSemaphorePool_(context),
-  fencePool_(context),
+  maxInflightFence_(context),
   commandBufferPool_(context),
   graphs_(context),
   graphCompiler_(context)
 {
+  vkReleaseSwapchainImagesEXT = (PFN_vkReleaseSwapchainImagesEXT)vkGetDeviceProcAddr(context->deviceh__,
+       "vkReleaseSwapchainImagesEXT");
+  if (!vkReleaseSwapchainImagesEXT)
+  {
+    throw std::runtime_error("Failed to load vkReleaseSwapchainImagesEXT");
+  }
+  pCtxt_->renderingContext.currentFrame__ = 0;
+  pCtxt_->renderingContext.inflightIndex__.resize(pCtxt_->pSwapChainContext->img__.size() + 1);
   //vkCmdSetPolygonModeEXT = (PFN_vkCmdSetPolygonModeEXT)
   //  vkGetDeviceProcAddr(pCtxt_->deviceh__, "vkCmdSetPolygonModeEXT");
   //if (!vkCmdSetPolygonModeEXT)
@@ -27,9 +35,8 @@ gpu::VkScheduler::~VkScheduler() = default;
 
 void gpu::VkScheduler::runGraphicsPipeline()
 {
-  uint64_t fenceTime = 1000000;
-  VkFence vkFence = fencePool_.fences[pCtxt_->
-                                      renderingContext.currentFrame__];
+  VkFence vkFence = maxInflightFence_.fences[pCtxt_->
+                                             renderingContext.currentFrame__];
 
   vkWaitForFences(pCtxt_->deviceh__,
                   1,
@@ -37,22 +44,19 @@ void gpu::VkScheduler::runGraphicsPipeline()
                   VK_TRUE,
                   UINT64_MAX);
 
-  vkResetFences(pCtxt_->deviceh__,
-                1,
-                &vkFence);
-
 
   VkResult result = vkAcquireNextImageKHR(pCtxt_->deviceh__,
                                           pCtxt_->pSwapChainContext->swapchain__,
                                           UINT64_MAX,
-                                          (imageAvailiableSemaphorePool_.semaphores__
-                                            [pCtxt_->renderingContext.currentFrame__]),
+                                          (imageAvailiableSemaphorePool_.semaphores__[pCtxt_->renderingContext.
+                                            currentFrame__]),
                                           VK_NULL_HANDLE,
-                                          &(pCtxt_->renderingContext.currentSwapchainIndex__));
-  auto swapchain = reinterpret_cast<VkImageNode*>(pCtxt_->nodeHash_[pCtxt_->pGraphBuilder->getSwapchainImage()]);
-  swapchain->nodeName_ = "swapchain image";
-  //swapchain->imageh__ = pCtxt_->pSwapChainContext->img__[pCtxt_->renderingContext.currentSwapchainIndex__];
-  //swapchain->imageView__ = pCtxt_->pSwapChainContext->imgView__[pCtxt_->renderingContext.currentSwapchainIndex__];
+                                          &(pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.
+                                            currentFrame__]));
+  vkResetFences(pCtxt_->deviceh__,
+                1,
+                &vkFence);
+
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR)
   {
@@ -65,8 +69,16 @@ void gpu::VkScheduler::runGraphicsPipeline()
   {
     throw std::runtime_error("Could not acquire the next swap chain image!");
   }
+
+  auto swapchain = reinterpret_cast<VkImageNode*>(pCtxt_->nodeHash_[pCtxt_->pGraphBuilder->getSwapchainImage()]);
+  swapchain->nodeName_ = "swapchain image";
+  swapchain->imageh__ = pCtxt_->pSwapChainContext->img__[pCtxt_->renderingContext.inflightIndex__[pCtxt_->
+    renderingContext.currentFrame__]];
+  swapchain->imageView__ = pCtxt_->pSwapChainContext->imgView__[pCtxt_->renderingContext.inflightIndex__[pCtxt_->
+    renderingContext.currentFrame__]];
   VkCommandBuffer cmd = commandBufferPool_.
     commandBuffers__[pCtxt_->renderingContext.currentFrame__];
+
   if (vkResetCommandBuffer(cmd, 0) != VK_SUCCESS)
   {
     throw std::runtime_error("fail to reset command buffer");
@@ -107,28 +119,26 @@ void gpu::VkScheduler::runGraphicsPipeline()
 
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &renderFinishSemaphorePool_.semaphores__
-    [pCtxt_->renderingContext.currentFrame__];
+    [pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.currentFrame__]];
 
   if (vkQueueSubmit(this->pCtxt_->graphicsQh__,
                     1,
                     &submitInfo,
-                    fencePool_.fences
+                    maxInflightFence_.fences
                     [pCtxt_->renderingContext.currentFrame__]) != VK_SUCCESS)
   {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
-
 
   VkSwapchainKHR swapchains[] = {pCtxt_->pSwapChainContext->swapchain__};
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &renderFinishSemaphorePool_.semaphores__
-    [pCtxt_->renderingContext.currentFrame__];
-
+    [pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.currentFrame__]];
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapchains;
-  presentInfo.pImageIndices = &(pCtxt_->renderingContext.currentSwapchainIndex__);
+  presentInfo.pImageIndices = &(pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.currentFrame__]);
   if (vkQueuePresentKHR(this->pCtxt_->presentQh__, &presentInfo) != VK_SUCCESS)
   {
     throw std::runtime_error("present Queue error");
@@ -137,3 +147,26 @@ void gpu::VkScheduler::runGraphicsPipeline()
     (pCtxt_->renderingContext.maxInflight__);
   ////spdlog::debug(" present");
 }
+
+///
+// VkReleaseSwapchainImagesInfoEXT releaseInfo{};
+// releaseInfo.sType = VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_EXT;
+// releaseInfo.imageIndexCount = 1;
+// releaseInfo.swapchain = pCtxt_->pSwapChainContext->swapchain__;
+// releaseInfo.pImageIndices = &pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.currentFrame__];
+// vkReleaseSwapchainImagesEXT(pCtxt_->deviceh__, &releaseInfo);
+///
+///
+///
+///
+///
+
+//if (pCtxt_->renderingContext.inflightIndex__[pCtxt_->renderingContext.
+//              currentFrame__] != pCtxt_->renderingContext.currentFrame__)
+//{
+//  //vkWaitForFences(pCtxt_->deviceh__,
+//  //              maxInflightFence_.fences.size(),
+//  //              maxInflightFence_.fences.data(),
+//  //              VK_TRUE,
+//  //              10000);
+//}

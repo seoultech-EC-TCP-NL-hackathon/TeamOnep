@@ -21,13 +21,15 @@ const bool ENABLE_VALIDATION_LAYERS = true;
 #include "vk_node.hpp"
 #include "vk_swapchain.hpp"
 
-namespace gpu{
+namespace gpu
+{
   class VkPass;
 
-  class VkContext{
-  public:
+  class VkContext
+  {
+    public:
     void loadContext();
-    GLFWwindow *windowh__;
+    GLFWwindow* windowh__;
     VkInstance instanceh__;
     VkSurfaceKHR surfaceh__;
     VkPhysicalDevice physicalDeviceh__;
@@ -38,14 +40,14 @@ namespace gpu{
     uint32_t presentFamilyIdx__;
     VkExtent2D initExtent__{2000, 1200};
 
-    VkBool32 dirty_              = VK_FALSE;
+    VkBool32 dirty_ = VK_FALSE;
     VkBool32 useDynamicRendering = VK_TRUE;
 
-    std::vector<gpu::VkPass *> uploadedPass;
+    std::vector<gpu::VkPass*> uploadedPass;
     std::vector<gpu::VkPass> compiledPass;
 
-    std::unordered_map<VkPassId, VkPass *> passHash_;
-    std::unordered_map<VkNodeId, VkNode *> nodeHash_;
+    std::unordered_map<VkPassId, VkPass*> passHash_;
+    std::unordered_map<VkNodeId, VkNode*> nodeHash_;
 
 
     std::unique_ptr<gpu::VkGraphBuilder> pGraphBuilder;
@@ -57,20 +59,23 @@ namespace gpu{
     std::unique_ptr<gpu::VkDescriptorAllocator> pDescriptorAllocator;
     //std::unique_ptr<GPU::VkDescriptorLayoutBuilder> pLayoutBuilder_;
 
-    struct{
-      std::vector<VkMeshBuffer *> batches;
+
+    struct
+    {
+      std::vector<VkMeshBuffer*> batches;
     } batch;
 
-    struct{
-      uint32_t maxInflight__           = 3;
-      uint32_t currentSwapchainIndex__ = 0;
-      uint32_t currentFrame__          = 0;
+    struct
+    {
+      uint32_t maxInflight__ = 2;
+      std::vector<uint32_t> inflightIndex__;
+      uint32_t currentFrame__ = 0;
     } renderingContext;
 
-  private:
+    private:
     void loadDeviceContext();
     void loadImGuiGPUContext();
-   // ~VkContext();
+    // ~VkContext();
   };
 }
 

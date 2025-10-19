@@ -17,6 +17,7 @@ namespace gpu
   constexpr uint32_t POLYGON_MODE_FILL = 0;
   constexpr uint32_t POLYGON_MODE_LINE = 1;
   constexpr uint32_t POLYGON_MODE_POINT = 2;
+   ///todo: imgui render pass setting -> only imgui rendering not dynamic rendering
 
   void cmdSetViewports(CommandBuffer cmd, float x, float y, float width, float height)
   {
@@ -67,6 +68,8 @@ namespace gpu
     VkMeshBuffer* node = reinterpret_cast<VkMeshBuffer*>(gpu::ctx__.nodeHash_[nodeId]);
     node->draw(cmd);
   }
+
+
 }
 #endif
 

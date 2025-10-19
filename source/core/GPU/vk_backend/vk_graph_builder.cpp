@@ -10,7 +10,8 @@
 namespace gpu
 {
   VkGraphBuilder::VkGraphBuilder(VkContext* pCtxt) :
-    pCtxt_(pCtxt)
+    pCtxt_(pCtxt),
+    swapchainPass{}
   {
     buildSwapchainImage();
   }
@@ -116,6 +117,7 @@ namespace gpu
     }
     return swapchainHandle[pCtxt_->renderingContext.currentFrame__];
   }
+
   void VkGraphBuilder::buildSwapchainImage()
   {
     for (uint32_t i = 0; i < pCtxt_->pSwapChainContext->img__.size(); ++i)
@@ -131,10 +133,13 @@ namespace gpu
       swapchainImage->usage_ = ResourceUsage::G_BUFFER;
       swapchainImage->lifetime = VkResourceLifetime::PERSISTENT;
       swapchainImage->aspectMask__ = VK_IMAGE_ASPECT_COLOR_BIT;
+      swapchainImage->lastWriter__ = nullptr;
       swapchainImage->height__ = pCtxt_->pSwapChainContext->extent__.height;
       swapchainImage->width__ = pCtxt_->pSwapChainContext->extent__.width;
       swapchainImage->nodeId_ = nodeId_++;
       swapchainImage->currentLayout__ = VK_IMAGE_LAYOUT_UNDEFINED;
+      swapchainImage->currentPipeline__ = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+      swapchainImage->currentAccessMask__ = VK_ACCESS_NONE;
       pCtxt_->nodeHash_[swapchainImage->nodeId_] = swapchainImage.get();
       uint32_t id = swapchainImage->nodeId_;
       nodes_.push_back(std::move(swapchainImage));
