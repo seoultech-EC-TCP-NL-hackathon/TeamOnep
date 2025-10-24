@@ -1,0 +1,10 @@
+
+#ifndef MYPROJECT_ISWAPCHAIN_H
+#define MYPROJECT_ISWAPCHAIN_H
+
+class ISwapchain
+{
+};
+
+
+#endif //MYPROJECT_ISWAPCHAIN_H

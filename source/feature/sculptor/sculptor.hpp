@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
-#include <../../core/scene_graph/camera_cfg.hpp>
 #include "brush.hpp"
 #include "../scene_graph/mesh_sub.hpp"
 #include "../../core/scene_graph/model.hpp"
@@ -31,7 +30,7 @@ class Painting{};
 class Sculptor : Painting{
   friend class Engine;
   friend class UI;
-  friend class EventProcessor;
+  friend class EventManager;
   friend class SculptorMode;
 
 
@@ -70,5 +69,39 @@ private:
   DynaMesh dynamicMesh_;
   Model *model_;
 };
+
+///
+///        ImGui::Separator();
+// if (sculpting != nullptr)
+// {
+//   ImGui::Text("Sculpting Brush");
+//   ImGui::SliderFloat("Strength ", &sculpting->sculptor->brush->strength, -1, 1);
+//   if (ImGui::Button("Standard:"))
+//   {
+//     sculpting->sculptor->brush = &sculpting->sculptor->basicBrush_;
+//   }
+//   if (ImGui::Button("Smooth :"))
+//   {
+//     sculpting->sculptor->brush = &sculpting->sculptor->smoothBrush_;
+//   }
+//
+//   if (ImGui::Button("Grab : "))
+//   {
+//     sculpting->sculptor->brush = &sculpting->sculptor->grabBrush_;
+//   }
+//
+//   if (ImGui::Button("inflate: "))
+//   {
+//     sculpting->sculptor->brush = &sculpting->sculptor->inflateBrush_;
+//   }
+// }
+///
+///
+///
+///
+///
+///
+///
+///
 
 #endif //MYPROJECT_SCULPTOR_HPP

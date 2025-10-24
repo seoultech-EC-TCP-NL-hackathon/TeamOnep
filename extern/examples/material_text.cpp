@@ -435,7 +435,7 @@ int main()
   spdlog::info("index size: {}", cmd.indexCnt);
   gpu::cam_batch batch;
 
-  EventProcessor interaction(context.window_h);
+  EventManager interaction(context.window_h);
   currnetPipeline = pipelinePool.getPipeline(interaction.getPolygonMode());
   interaction.setCamera(&cam);
   interaction.setSwapchain(&swapchain);

@@ -1,31 +1,21 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
-#include <../../extern/examples/pipeline.hpp>
-#include <../resource/renderpass_pool.hpp>
-#include <../resource/descriptor_manager.hpp>
-
-#include <../resource/shader_pool.hpp>
 #include <../scene_graph/mesh.hpp>
 #include <../resource/sampler_builder.hpp>
-#include <../resource/texture.hpp>
-#include <../resource_pool.hpp>
-
-
+#include <../GPU/texture.hpp>
+#include "resource_manager.hpp"
 #include "../../../extern/examples/renderer_resource.hpp"
 #include "../GPU/context.hpp"
 #include "unique.hpp"
 #include "ui.hpp"
 
-struct RenderInitInfo{
-  VkDevice device_h;
-  ResourcePool *resourceManager;
-  VkExtent2D extent;
-  VkDescriptorSetLayout *pDescriptorSetLayouts;
-  VkRenderPass renderPass;
-  uint32_t descriptorSetLayoutCount;
+struct RenderInitInfo
+{
+  ResourceManager* resourceManager;
 };
 
-enum class ViewMode{
+enum class ViewMode
+{
   SINGLE,
   MULTI,
   FPS,
@@ -33,58 +23,63 @@ enum class ViewMode{
   VR
 };
 
-class RenderingSystem{
+class IRenderer
+{
   friend class Engine;
-  friend class EventProcessor;
+  friend class EventManager;
+  public:
+  IRenderer(RenderInitInfo info);
+  ~IRenderer() = default;
 
-public:
-  RenderingSystem(RenderInitInfo info);
-  ~RenderingSystem() {}
-  void uploadRenderPass();
+  void uploadDepthPass();
+  void uploadQuadDraw();
+  void uploadUiDraw();
+
   void pushConstant(VkCommandBuffer cmdBuffer);
-  void setUp(VkCommandBuffer cmd);
-
   void draw(VkCommandBuffer cmd, uint32_t currentFrame);
-  void setCamera(Camera *cameraP)
-  {
-    camera = cameraP;
-  }
 
-private:
+  private:
   std::vector<gpu::SwapchainHandle> swapchainHandle_;
-  std::vector<gpu::NodeId> drawHandle_;
-  std::vector<gpu::NodeId> depthAttachmentHandle_;
-  VkPhysicalDevice physical_device_h;
-  VkDevice device_h;
-  VkQueue graphics_q;
-  VkQueue present_q;
-  VkSurfaceKHR surface_h;
-  VkFormat format;
+  std::vector<gpu::VkMeshBuffer*> drawHandle_;
+  std::vector<gpu::VkFrameAttachment*> depthAttachmentHandle_;
   gpu::Pipeline backgroundPipeline_;
   gpu::Pipeline pipeline_h;
-  VkPipelineLayout pipelineLayout_h;
-  VkDescriptorSetLayout *pDescriptorSetLayouts;
+  gpu::PipelineLayout pipelineLayout_h;
+  VkDescriptorSetLayout* pDescriptorSetLayouts;
   uint32_t descriptorLayoutCount;
-  uint32_t present_family;
-  uint32_t graphics_family;
-
   std::vector<BatchContext> batches_;
   ViewMode viewMode = ViewMode::SINGLE;
   PFN_vkCmdSetPolygonModeEXT vkCmdSetPolygonModeEXT;
   VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
-  VkBool32 depthTest        = VK_TRUE;
-  VkBool32 drawBackground   = VK_TRUE;
+  VkBool32 depthTest = VK_TRUE;
+  VkBool32 drawBackground = VK_TRUE;
 
-  std::string fragPath     = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/depth.frag";
-  std::string vertPath     = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/vertex.vert";
-  std::string fragBackPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/sculptor_background.frag";
-  std::string VertBackPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/sculptor_background.vert";
+  std::string fragPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/depth.frag";
+  std::string vertPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/vertex.vert";
+  std::string fragBackPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/def_depth.frag";
+  std::string VertBackPath = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/source/shader/quad.vert";
   VkViewport viewport{};
   VkRect2D scissor{};
 
-  Camera *camera;
-  VulkanTexture *texture;
-  ResourcePool &pResourceManager;
+  struct FrameAttachment
+  {
+    int gBufferPositon = 0;
+    int gBufferNormal = 0;
+    int gBufferAlbedo = 0;
+    int gBufferRoughness = 0;
+
+    int DepthBuffer = 0;
+    int ShaderBuffer = 0;
+    int lightningBuffer = 0;
+    int postProcessBuffer = 0;
+
+    glm::mat4 modelMatrix;
+    glm::vec4 vec4;
+    glm::vec4 vec3;
+  } renderAttachment;
+
+  VulkanTexture* texture;
+  ResourceManager& pResourceManager;
   VkDeviceSize offsets = 0;
 };
 #endif

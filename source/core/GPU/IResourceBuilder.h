@@ -1,0 +1,8 @@
+//
+// Created by dlwog on 25. 10. 22..
+//
+
+#ifndef MYPROJECT_IRESOURCEBUILDER_H
+#define MYPROJECT_IRESOURCEBUILDER_H
+
+#endif //MYPROJECT_IRESOURCEBUILDER_H

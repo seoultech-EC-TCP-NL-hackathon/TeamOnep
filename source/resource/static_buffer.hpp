@@ -2,13 +2,7 @@
 #define BUFFER_HPP
 #include <common.hpp>
 #include "vk_memory_allocator.hpp"
-enum class BufferType{
-  VERTEX,
-  INDEX,
-  UNIFORM,
-  STORAGE,
-  STAGE
-};
+#include "IBuffer.hpp"
 class StaticBuffer{
 public:
   StaticBuffer(gpu::VkMemoryAllocator &allocator,
@@ -19,7 +13,7 @@ public:
   void copyBuffer(VkCommandBuffer commandBuffer);
   void createMainBuffer();
   void createUniformBuffer();
-  void loadData(const void *data, VkDeviceSize size);
+  void loadDqata(const void *data, VkDeviceSize size);
   void getStagingBuffer(const void *data);
   const VkBuffer *getBuffer();
   const VkBuffer getStagingBuffer();

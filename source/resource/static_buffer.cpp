@@ -4,8 +4,8 @@ StaticBuffer::StaticBuffer(gpu::VkMemoryAllocator &allocator, VkDeviceSize buffe
                                                                                                           bufferSize(bufferSize),
                                                                                                           type(type)
 {
-  device         = gpu::ctx__.deviceh__;
-  physicalDevice = gpu::ctx__.physicalDeviceh__;
+  device         = gpu::ctx__->deviceh__;
+  physicalDevice = gpu::ctx__->physicalDeviceh__;
   bool STAGE     = stage(type);
 }
 
@@ -77,13 +77,7 @@ void StaticBuffer::createUniformBuffer()
   }
 }
 
-void StaticBuffer::loadData(const void *data, VkDeviceSize size)
-{
-  void *bufferData;
-  vkMapMemory(device, allocation.memory__, allocation.offset__, size, 0, &bufferData);
-  memcpy(bufferData, data, (size_t) size);
-  vkUnmapMemory(device, allocation.memory__);
-}
+
 
 void StaticBuffer::getStagingBuffer(const void *data)
 { ///

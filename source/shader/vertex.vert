@@ -18,33 +18,33 @@ layout (location = 6) out vec3 camPos;
 layout (location = 7) out vec2 background;
 
 layout (set = 0, binding = 0) uniform cameraUBD {
-  mat4 view;
-  mat4 proj;
-  vec3 camPos;
+    mat4 view;
+    mat4 proj;
+    vec3 camPos;
 } camera;
 
 layout (push_constant) uniform PushConstants {
-  mat4 model;
-  vec4 color;
-  uint bindlessIndex;
+    mat4 model;
+    vec4 color;
+    uint bindlessIndex;
 } constant;
 
-vec2 positions[4] = vec2[](vec2(-1,-1), vec2(1,-1), vec2(1,1), vec2(-1,1));
+vec2 positions[4] = vec2[](vec2(-1, -1), vec2(1, -1), vec2(1, 1), vec2(-1, 1));
 void main() {
 
-  vec3 N = normalize(inNormal);
-  vec3 B = normalize(inBitangent);
+    vec3 N = normalize(inNormal);
+    vec3 B = normalize(inBitangent);
 
-  float handedness = 1.0;
-  vec3 T = cross(B, N) * handedness;
+    float handedness = 1.0;
+    vec3 T = cross(B, N) * handedness;
 
-  vec4 worldPos = constant.model * vec4(inPos.xyz, 1.0);
-  //gl_Position = camera.proj * camera.view * worldPos;
-  gl_Position =  worldPos;
-  outPos = worldPos.xyz;
-  outNormal = inNormal;
-  fragTexCoord = inUV;
-  camPos = camera.camPos;
-  TBN = mat3(T, B, N);
-  background = (positions[gl_VertexIndex] + 1.0) * 0.5;
+    vec4 worldPos = vec4(inPos.xyz, 1.0);
+    gl_Position = camera.proj * camera.view * worldPos;
+    outPos = worldPos.xyz;
+
+    outNormal = inNormal;
+    fragTexCoord = inUV;
+    camPos = camera.camPos;
+    TBN = mat3(T, B, N);
+    background = (positions[gl_VertexIndex] + 1.0) * 0.5;
 }

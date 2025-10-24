@@ -1,52 +1,25 @@
 #include <filesystem>
 #include <fstream>
 #include "unique.hpp"
-#include "brush.hpp"
 #include "imgui_internal.h"
 #include "../../core/GPU/context.hpp"
 #include "ui.hpp"
 
 UI::UI() = default;
 
-void UI::uploadUIPass()
+void UI::update()
 {
-  gpu::NodeId swapchain = gpu::ctx__.pGraphBuilder->getSwapchainImage();
-  mns::uptr<gpu::RenderPass> pass = mns::mUptr<gpu::RenderPass>();
-  pass->passType = gpu::RenderPassType::UI;
-  gpu::RenderPass* ptr = pass.get();
-  ptr->dependency__ = {};
-  ptr->dependent__ = {};
-  ptr->linkCount = 0;
-  pass->execute = [this, ptr](gpu::CommandBuffer cmd)
-  {
-    cmdBeginRendering(cmd,ptr);
-    rec(cmd);
-    drawcall(cmd);
-    drawTransition(cmd);
-    render(cmd);
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->AddFontDefault();
-    io.Fonts->Build();
-    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
-    ImFont* font = ImGui::GetIO().Fonts->Fonts[0];
-
-    if (font == nullptr)
-    {
-      spdlog::info("no font ");
-    }
-    spdlog::info("test");
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-    vkCmdEndRendering(cmd);
-  };
-  gpu::PassId uiPass = gpu::ctx__.pGraphBuilder->addPass(pass);
-  gpu::ctx__.pGraphBuilder->addWriteResource(uiPass, swapchain);
+  rec();
+  drawcall();
+  drawTransition();
+  render();
 }
+
 
 void UI::setupStyle()
 {
   auto& io = ImGui::GetIO();
   io.Fonts->Clear();
-  ImGui::GetIO().IniFilename = nullptr;
   ImGui::StyleColorsDark(); // 다크 테마 기반
   ImGuiStyle& style = ImGui::GetStyle();
   ImVec4* colors = style.Colors;
@@ -100,8 +73,8 @@ void UI::setupStyle()
   style.ScrollbarSize = 14.0f;
   style.GrabMinSize = 14.0f;
   style.FontSizeBase = 11;
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 }
-
 void UI::uploadImageToUI()
 {
   auto& backgroundTextures_ = pResourceManager_->uiNeedTextures;
@@ -125,19 +98,19 @@ void UI::uploadImageToUI()
 }
 
 
-void UI::rec(VkCommandBuffer command)
+void UI::rec()
 {
   gpu::newFrameApiCall();
   gpu::newFrameSurfaceCall();
   ImGui::NewFrame();
 }
 
-void UI::render(VkCommandBuffer command)
+void UI::render()
 {
   ImGui::Render();
 }
 
-void UI::draw(VkCommandBuffer command)
+void UI::draw()
 {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
@@ -148,12 +121,10 @@ void UI::draw(VkCommandBuffer command)
   drawMouseState(smallSize);
   drawToolBoxRight(smallSize);
   drawToolBoxLeft(smallSize);
-
   ImGui::Render();
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
 }
 
-void UI::drawcall(VkCommandBuffer command)
+void UI::drawcall()
 {
   const ImVec2 smallSize = smallUi_ ? ImVec2(160, 80) : ImVec2(440, 220);
   drawFramebufferState();
@@ -165,7 +136,7 @@ void UI::drawcall(VkCommandBuffer command)
   drawToolBoxUnderTexture(smallSize);
 }
 
-void UI::drawTransition(VkCommandBuffer command)
+void UI::drawTransition()
 {
   ImVec2 dispSize = ImGui::GetIO().DisplaySize;
   ImDrawList* draw_list = ImGui::GetForegroundDrawList();
@@ -182,9 +153,8 @@ void UI::drawStateWindow(ImVec2 size)
   {
     ImVec2 dispSize = ImGui::GetIO().DisplaySize;
     ImGui::SetNextWindowPos(ImVec2(dispSize.x / 9.0f, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(dispSize.x - dispSize.x * 2 / 9, (dispSize.y / 9)), ImGuiCond_Once);
-    if (ImGui::Begin("box", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
+    ImGui::SetNextWindowSize(ImVec2(dispSize.x - dispSize.x * 2 / 9, (dispSize.y / 9)));
+    if (ImGui::Begin("box", nullptr, ImGuiWindowFlags_NoMove))
     {
       // drawFramebufferState();
       // drawVertexState(size);
@@ -205,11 +175,10 @@ void UI::drawToolBoxRight(ImVec2 size)
     ImVec2 dispSize = ImGui::GetIO().DisplaySize;
     ImGui::SetNextWindowPos(ImVec2(dispSize.x - dispSize.x / 9, 0), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(dispSize.x / 9, dispSize.y / 6 * 5), ImGuiCond_Once);
-    if (ImGui::Begin("Model Tool Box",
+
+    if (ImGui::Begin("RIGHT BOX",
                      nullptr,
-                     ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoResize |
-                     ImGuiWindowFlags_NoMove))
+                     ImGuiWindowFlags_NoMove ))
     {
       ImGui::Text("MODEL FOLDER : ");
       ImGui::BeginChild("Model folder");
@@ -262,12 +231,10 @@ void UI::drawToolBoxLeft(ImVec2 size)
   {
     ImVec2 dispSize = ImGui::GetIO().DisplaySize;
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(dispSize.x / 9.0f, dispSize.y / 6 * 5), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(dispSize.x / 9.0f, dispSize.y / 6 * 5));
     if (ImGui::Begin("setting Tool Box",
                      nullptr,
-                     ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoResize |
-                     ImGuiWindowFlags_NoMove))
+                     ImGuiWindowFlags_NoMove ))
     {
       {
         ImGui::Text("Material Parameter");
@@ -282,33 +249,8 @@ void UI::drawToolBoxLeft(ImVec2 size)
         ImGui::SliderFloat(" roughness: ", &pResourceManager_->selectedModel.constant.roughness, 0, 1);
         ImGui::SliderFloat(" ao: ", &pResourceManager_->selectedModel.constant.ao, 0, 1);
         ImGui::SliderFloat(" emission: ", &pResourceManager_->selectedModel.constant.emission, 0, 1);
-        ImGui::SliderFloat(" N scale : ", &pResourceManager_->selectedModel.constant.normalScale, 0, 1);
         ImGui::SliderFloat(" alpha: ", &pResourceManager_->selectedModel.constant.alphaCutoff, 0, 1);
 
-        ImGui::Separator();
-        if (sculpting != nullptr)
-        {
-          ImGui::Text("Sculpting Brush");
-          ImGui::SliderFloat("Strength ", &sculpting->sculptor->brush->strength, -1, 1);
-          if (ImGui::Button("Standard:"))
-          {
-            sculpting->sculptor->brush = &sculpting->sculptor->basicBrush_;
-          }
-          if (ImGui::Button("Smooth :"))
-          {
-            sculpting->sculptor->brush = &sculpting->sculptor->smoothBrush_;
-          }
-
-          if (ImGui::Button("Grab : "))
-          {
-            sculpting->sculptor->brush = &sculpting->sculptor->grabBrush_;
-          }
-
-          if (ImGui::Button("inflate: "))
-          {
-            sculpting->sculptor->brush = &sculpting->sculptor->inflateBrush_;
-          }
-        }
         ImGui::Separator();
 
         ImGui::Text("Texture Binding");
@@ -420,23 +362,18 @@ void UI::drawToolBoxUnder(ImVec2 size)
   ImGui::SetNextWindowSize(ImVec2(dispSize.x / 80, dispSize.x / 80), ImGuiCond_Once);
   if (ImGui::Begin("log",
                    nullptr,
-                   ImGuiWindowFlags_NoResize |
-                   ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoScrollbar))
   {
     ImGui::SetNextWindowPos(ImVec2(dispSize.x / 80,
                                    (dispSize.y / 6) * 5),
                             ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(dispSize.x
                                     - dispSize.x / 80,
                                     (dispSize.y / 6)),
                              ImGuiCond_Always);
     if (ImGui::Begin("system Log:",
                      nullptr,
-                     ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoResize))
+                     ImGuiWindowFlags_NoMove ))
     {
       ImVec2 minPos(0, (dispSize.y / 6) * 5);
       ImVec2 maxPos(dispSize.x - dispSize.x / 5, (dispSize.y / 6));
@@ -464,14 +401,12 @@ void UI::drawToolBoxUnderTexture(ImVec2 size)
   ImGui::SetNextWindowSize(ImVec2(dispSize.x / 80, dispSize.x / 80), ImGuiCond_Once);
   if (ImGui::Begin("txt",
                    nullptr,
-                   ImGuiWindowFlags_NoResize |
                    ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoScrollbar))
   {
     ImGui::SetNextWindowPos(ImVec2(dispSize.x / 80,
                                    (dispSize.y / 6) * 5),
                             ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(dispSize.x
                                     - dispSize.x / 80,
                                     (dispSize.y / 6)),
@@ -479,9 +414,7 @@ void UI::drawToolBoxUnderTexture(ImVec2 size)
 
     if (ImGui::Begin("alocated Textures :",
                      nullptr,
-                     ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoResize))
+                     ImGuiWindowFlags_NoMove ))
     {
       for (int i = 0; i < uiTextures_.size(); i++)
       {
@@ -508,7 +441,6 @@ void UI::drawToolBoxUnderTexture(ImVec2 size)
 void UI::drawLightUI(ImVec2 size)
 {
   ImGui::SetNextWindowPos(ImVec2(20, 300), ImGuiCond_Always);
-  ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
   ImGui::SetNextWindowSize(size, ImGuiCond_Once);
   if (ImGui::Begin("Light setting", nullptr, ImGuiWindowFlags_NoMove))
   {
@@ -552,7 +484,7 @@ void UI::drawShaderUI()
   ImGui::End();
 }
 
-void UI::setResourceManager(ResourcePool* resourceManager)
+void UI::setResourceManager(ResourceManager* resourceManager)
 {
   pResourceManager_ = resourceManager;
 }
@@ -573,7 +505,6 @@ void UI::drawIndexState(ImVec2 size)
 {
   {
     ImGui::SetNextWindowPos(ImVec2(20, 80), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(size);
     if (ImGui::Begin("Index State:", nullptr, ImGuiWindowFlags_NoMove))
     {
@@ -595,7 +526,6 @@ void UI::drawTextureState(ImVec2 size)
 {
   {
     ImGui::SetNextWindowPos(ImVec2(20, 130), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(size);
     if (ImGui::Begin("texture State:", nullptr, ImGuiWindowFlags_NoMove))
     {
@@ -616,7 +546,7 @@ void UI::drawMaterialState(ImVec2 size)
 {
   {
     ImGui::SetNextWindowPos(ImVec2(20, 155), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
+
     ImGui::SetNextWindowSize(size);
     if (ImGui::Begin("Material State:", nullptr, ImGuiWindowFlags_NoMove))
     {
@@ -634,7 +564,6 @@ void UI::drawCameraState(ImVec2 size)
 {
   {
     ImGui::SetNextWindowPos(ImVec2(20, 180), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(size);
     if (ImGui::Begin("Camera State:", nullptr, ImGuiWindowFlags_NoMove))
     {
@@ -658,23 +587,23 @@ void UI::drawCameraState(ImVec2 size)
 
 void UI::drawMouseState(ImVec2 size)
 {
-  if (sculpting != nullptr)
-  {
-    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
-    ImVec2 mouse_pos = ImGui::GetIO().MousePos;
-    float radius = sculpting->sculptor->brush->radius;
-    ImU32 mouseColor = IM_COL32(255, 0, 0, 255);
-    float thickness = 2.0f;
-    draw_list->AddCircle(mouse_pos, radius, mouseColor, 32, thickness);
-    if (sculpting->symmetry_)
-    {
-      // show symmetry
-      ImVec2 point = ImGui::GetIO().DisplaySize;
-      point.x -= mouse_pos.x;
-      point.y = mouse_pos.y;
-      draw_list->AddCircle(point, radius, mouseColor, 32, thickness);
-    }
-  }
+  //if (sculpting != nullptr)
+  //{
+  //  ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+  //  ImVec2 mouse_pos = ImGui::GetIO().MousePos;
+  //  float radius = sculpting->sculptor->brush->radius;
+  //  ImU32 mouseColor = IM_COL32(255, 0, 0, 255);
+  //  float thickness = 2.0f;
+  //  draw_list->AddCircle(mouse_pos, radius, mouseColor, 32, thickness);
+  //  if (sculpting->symmetry_)
+  //  {
+  //    // show symmetry
+  //    ImVec2 point = ImGui::GetIO().DisplaySize;
+  //    point.x -= mouse_pos.x;
+  //    point.y = mouse_pos.y;
+  //    draw_list->AddCircle(point, radius, mouseColor, 32, thickness);
+  //  }
+  //}
 }
 
 void UI::drawFramebufferState()
@@ -682,12 +611,7 @@ void UI::drawFramebufferState()
   {
     ImGui::SetNextWindowBgAlpha(0.35f);
     if (ImGui::Begin("Overlay",
-                     nullptr,
-                     ImGuiWindowFlags_NoDecoration |
-                     ImGuiWindowFlags_AlwaysAutoResize |
-                     ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoFocusOnAppearing |
-                     ImGuiWindowFlags_NoNav))
+                     nullptr))
     {
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
       ImGui::Text("Frame Time: %.2f ms", 1000.0f / ImGui::GetIO().Framerate);

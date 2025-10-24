@@ -416,8 +416,8 @@ void SystemRenderer::renderStage()
   gpu::fps_cam camData = fpsCam_.flush();
   std::memcpy(camBufHandle[renderContext.currentFrame].mapped, &camData, sizeof(gpu::fps_cam));
 
-  EventProcessor_->getKey();
-  EventProcessor_->wheelUpdate();
+  EventManager_->getKey();
+  EventManager_->wheelUpdate();
   VkCommandBuffer commandBuffer = commandManager_->beginPrimary(renderContext.currentFrame);
 
   VkImageSubresourceRange colorSubresourceRange = {};
@@ -595,7 +595,7 @@ void SystemRenderer::renderStage()
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ImguiRenderPipelineHandle);
   vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-  uiRenderer_->draw(commandBuffer, *controler_);
+  uIRenderer_->draw(commandBuffer, *controler_);
   vkCmdEndRenderPass(commandBuffer);
   commandManager_->end(commandBuffer);
 

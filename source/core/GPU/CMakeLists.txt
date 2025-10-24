@@ -5,14 +5,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
-set(VK_BACKEND ${CMAKE_SOURCE_DIR}/vk_backend)
+set(VK ${CMAKE_SOURCE_DIR}/vk_backend)
 set(KTX_DIR ${CMAKE_SOURCE_DIR}/ktx)
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
 set(IMNODE_DIR ${CMAKE_SOURCE_DIR}/imnodes)
 
 
 if (SUB_DIR)
-    set(VK_BACKEND ${CMAKE_SOURCE_DIR}/source/core/GPU/vk_backend)
+    set(VK ${CMAKE_SOURCE_DIR}/source/core/GPU/vk_backend)
     set(KTX_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/ktx)
     set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imgui)
     set(IMNODE_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imnodes)
@@ -100,7 +100,7 @@ add_definitions(-DSPDLOG_HEADER_ONLY)
 target_include_directories(vk_imple
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/vk_backend
+        ${CMAKE_CURRENT_SOURCE_DIR}/VK
 )
 
 

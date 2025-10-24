@@ -1,7 +1,6 @@
 #ifndef MESH_HPP
 #define MESH_HPP
 #include <static_buffer.hpp>
-
 #include "../resource/vertex.hpp"
 #include "material.hpp"
 #include "push_constant.hpp"

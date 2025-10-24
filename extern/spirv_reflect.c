@@ -4200,7 +4200,7 @@ static SpvReflectResult DisambiguateStorageBufferSrvUav(SpvReflectShaderModule* 
 
     //
     // Vulkan doesn't disambiguate between SRVs and UAVs so they
-    // come back as STORAGE_BUFFER. The block parsing EventProcessor will
+    // come back as STORAGE_BUFFER. The block parsing EventManager will
     // mark a block as non-writable should any member of the block
     // or its descendants are non-writable.
     //

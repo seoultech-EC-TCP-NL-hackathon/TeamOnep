@@ -23,7 +23,7 @@ enum class IndexType: uint32_t{
 struct Submesh{
   uint32_t startIndex   = 0;
   uint32_t indexCount   = 0;
-  uint32_t vertexOffset = 0; // vertices 배열 내 오프셋
+  uint32_t vertexOffset = 0;
 };
 
 struct mesh_cmd{

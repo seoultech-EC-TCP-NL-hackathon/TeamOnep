@@ -1,19 +1,45 @@
 #ifndef MYPROJECT_CONTEXT_HPP
 #define MYPROJECT_CONTEXT_HPP
+#include "unique.hpp"
+#include "IShader.hpp"
+
+namespace gpu
+{
+  class IDescriptorAllocator;
+  class ICommandBuffer;
+  class IPipeline;
+
+  class Context
+  {
+    public:
+    virtual ~Context() = default;
+    virtual void loadContext() =0;
+
+    private:
+    IDescriptorAllocator* descriptor_;
+    ICommandBuffer* commandBuffer_;
+    IPipeline* pipeline_;
+  };
+
+  extern std::unique_ptr<IShader> iShd__;
+}
+#ifdef DX12
+// todo: imple #include
+#endif
 
 #define IMPLE_VULKAN
 #ifdef IMPLE_VULKAN
 #include "imgui_impl_glfw.h"
-#include "node.hpp"
-#include "vk_context.hpp"
+#include "flag.hpp"
 #include "vk_scheduler.hpp"
 #include "vk_vertex_attr.hpp"
 #include "back/imgui_impl_vulkan.h"
+#include "vk_pass.hpp"
+#include "vk_texture.hpp"
 
 namespace gpu
 {
-  using Context = VkContext;
-  extern Context ctx__;
+  extern VkContext* ctx__;
   using SwapchainHandle = uint32_t;
   using CommandBuffer = VkCommandBuffer;
   using Descriptor = VkDescriptorSet;
@@ -21,21 +47,30 @@ namespace gpu
   using PolygonMode = VkPolygonMode;
   using Scheduler = VkScheduler;
   using RenderPass = VkPass;
-  using RenderNode = VkNode;
+  using RenderNode = VkResource;
+  using ImageHanle = VkFrameAttachment;
+  using BufferHanle = VkHostBuffer;
   using RenderingAttachment = VkRenderingAttachmentInfo;
-  using GraphicsBuffer = VkBufferNode;
-  using GraphicsImage = VkImageNode;
   using PipelineLayout = VkPipelineLayout;
+  using DescriptorSetLayout = VkDescriptorSetLayout;
   using Pipeline = VkPipeline;
   using PipelineCache = VkPipelineCache;
   using PipelineLayout = VkPipelineLayout;
   using RenderingInfo = VkRenderingInfo;
   using ViewPort = VkViewport;
+  using ShaderObject = VkShaderModule;
+
+  struct GraphicsPipelineObject
+  {
+    Pipeline pipeline;
+    PipelineLayout pipelineLayout;
+    DescriptorSetLayout descriptorLayout;
+    ShaderObject vertexShader;
+    ShaderObject fragmentShader;
+  };
 
   using VertexBindingDescriptor = VkVertexInputBindingDescription;
   using VertexAttribute = VkVertexInputAttributeDescription;
-
-
   constexpr uint32_t FORMAT_R8G8_UNORM = 16;
   constexpr uint32_t FORMAT_R8G8_SNORM = 17;
   constexpr uint32_t FORMAT_R8G8_USCALED = 18;
@@ -128,6 +163,7 @@ namespace gpu
                        float height);
   void cmdBeginRendering(CommandBuffer cmd, RenderPass* pass);
   void cmdDraw(CommandBuffer cmd, uint32_t handle);
+  void cmdDrawQuad(CommandBuffer cmd);
 
   inline auto cmdBindDescriptorSets = vkCmdBindDescriptorSets;
   inline auto cmdBindPipeline = vkCmdBindPipeline;

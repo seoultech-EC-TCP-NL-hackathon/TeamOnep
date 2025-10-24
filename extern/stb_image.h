@@ -64,7 +64,7 @@
 
       - Added STBI_MALLOC, STBI_REALLOC, and STBI_FREE macros for replacing
         the memory allocator. Unlike other STBI libraries, these macros don't
-        support a context parameter, so if you need to pass a context in to
+        support a IContext parameter, so if you need to pass a IContext in to
         the allocator, you'll have to store it in a global or a thread-local
         variable.
 
@@ -732,9 +732,9 @@ static int stbi__sse2_available()
 
 ///////////////////////////////////////////////
 //
-//  stbi__context struct and start_xxx functions
+//  stbi__IContext struct and start_xxx functions
 
-// stbi__context structure is our basic context used by all images, so it
+// stbi__IContext structure is our basic IContext used by all images, so it
 // contains all the IO context, plus some basic image information
 typedef struct
 {

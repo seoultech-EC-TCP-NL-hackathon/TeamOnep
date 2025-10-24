@@ -1,23 +1,21 @@
-//
-// Created by ljh on 25. 10. 12..
-//
 #include "../context.hpp"
 #include "../io/io.hpp"
-
+#include "vk_context.hpp"
 
 extern mns::IoSystem io__;
 #define IMPLE_VULKAN
 #ifdef IMPLE_VULKAN
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
+#include "vk_shader_pool.hpp"
 
 namespace gpu
 {
-  gpu::Context ctx__;
+  VkContext* ctx__ = new VkContext();
+  std::unique_ptr<IShader> iShd__ = std::make_unique<VkShaderPool>();
   constexpr uint32_t POLYGON_MODE_FILL = 0;
   constexpr uint32_t POLYGON_MODE_LINE = 1;
   constexpr uint32_t POLYGON_MODE_POINT = 2;
-   ///todo: imgui render pass setting -> only imgui rendering not dynamic rendering
 
   void cmdSetViewports(CommandBuffer cmd, float x, float y, float width, float height)
   {
@@ -57,26 +55,29 @@ namespace gpu
     renderingInfo.renderArea = {
       0,
       0,
-      gpu::ctx__.pSwapChainContext->extent__.width,
-      gpu::ctx__.pSwapChainContext->extent__.height
+      gpu::ctx__->pSwapChainContext->extent__.width,
+      gpu::ctx__->pSwapChainContext->extent__.height
     };
     vkCmdBeginRendering(cmd, &renderingInfo);
   }
 
   void cmdDraw(CommandBuffer cmd, uint32_t nodeId)
   {
-    VkMeshBuffer* node = reinterpret_cast<VkMeshBuffer*>(gpu::ctx__.nodeHash_[nodeId]);
+    VkMeshBuffer* node = reinterpret_cast<VkMeshBuffer*>(gpu::ctx__->nodeHash_[nodeId]);
     node->draw(cmd);
   }
 
-
+  void cmdDrawQuad(CommandBuffer cmd)
+  {
+    vkCmdDraw(cmd, 6, 1, 0, 0);
+  }
 }
 #endif
 
 
 //
-//   GPU::PassId test                            = ctx__.pGraphBuilder->addPass(pass);
-//   GPU::NodeId swapchain                       = ctx__.pGraphBuilder->buildSwapchainImage();
+//   GPU::PassId test                            = ctx__->graphBuilder->addPass(pass);
+//   GPU::NodeId swapchain                       = ctx__.graphBuilder->buildSwapchainImage();
 //   std::unique_ptr<GPU::VkGraphicsImage> image = std::unique_ptr<GPU::VkGraphicsImage>(new GPU::VkGraphicsImage());
 //   image->aspectMask__                         = VK_IMAGE_ASPECT_COLOR_BIT;
 //   image->format__                             = VK_FORMAT_R8G8B8A8_UNORM;
@@ -88,9 +89,9 @@ namespace gpu
 //   image->mSpace_                              = GPU::MemorySpace::DEVICE_LOCAL;
 //   image->height_                              = ctx__.pSwapChainContext->extent__.height;
 //   image->width__                              = ctx__.pSwapChainContext->extent__.width;
-//   GPU::NodeId color                           = ctx__.pGraphBuilder->buildImageHandle(image);
-//   ctx__.pGraphBuilder->addWriteResource(test, swapchain);
-//   ctx__.pGraphBuilder->addReadResource(test, color);
+//   GPU::NodeId color                           = ctx__.graphBuilder->registerImage(image);
+//   ctx__.graphBuilder->addWriteResource(test, swapchain);
+//   ctx__.graphBuilder->addReadResource(test, color);
 //   GPU::Scheduler scheduler(&ctx__);
 //   while (!glfwWindowShouldClose(ctx__.windowh__))
 //   {
@@ -102,15 +103,15 @@ namespace gpu
 //summitQueue(command, imageIndex_);
 //currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 //    VkCommandBuffer command = rec(imageIndex_);
-//for (uint32_t i = 0; i < uiRenderer->callStack_.size(); i++)
+//for (uint32_t i = 0; i < uIRenderer->callStack_.size(); i++)
 //{
-//  UICall call = uiRenderer->callStack_.back();
+//  UICall call = uIRenderer->callStack_.back();
 //  spdlog::info("call stack {}", call.path.c_str());
 //  if (call.type == CallType::Mesh)
 //  {
 //    resourceManager_->uploadMesh(command, call.path);
-//    uiRenderer->callStack_.pop_back();
-//    if (EventProcessor_->singleModel == true)
+//    uIRenderer->callStack_.pop_back();
+//    if (EventManager_->singleModel == true)
 //    {
 //      std::vector<std::string> trashes;
 //      for (auto &mesh: resourceManager_->meshes_)
@@ -130,13 +131,13 @@ namespace gpu
 //  if (call.type == CallType::Texture)
 //  {
 //    resourceManager_->uploadTexture(command, call.path);
-//    uiRenderer->callStack_.pop_back();
-//    uiRenderer->uploadImageToUI();
+//    uIRenderer->callStack_.pop_back();
+//    uIRenderer->uploadImageToUI();
 //  }
 //}
-//if (EventProcessor_->actor_->shoudAct)
+//if (EventManager_->actor_->shoudAct)
 //{
-//  EventProcessor_->actor_->act(command);
+//  EventManager_->actor_->act(command);
 //}
 //
 //inFlightFences->wait(currentFrame);
@@ -179,7 +180,7 @@ namespace gpu
 //                        pipeline_layout_h,
 //                        0,
 //                        1,
-//                        &resourceManager_->mainCamBuffers_[currentFrame].descriptorSet,
+//                        &resourceManager_->currentCamBuffer[currentFrame].descriptorSet,
 //                        0,
 //                        nullptr);
 //

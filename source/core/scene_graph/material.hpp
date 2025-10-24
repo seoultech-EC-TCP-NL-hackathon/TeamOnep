@@ -1,5 +1,5 @@
-#ifndef MATERIAL_HPP
-#define MATERIAL_HPP
+#ifndef MATERIAL_builderHPP
+#define MATERIAL_builderHPP
 #define MATERIAL_MAX 32
 
 struct Material{
@@ -13,6 +13,7 @@ struct Material{
   float normalScale       = 1.0f;
   float alphaCutoff       = 0.5f;
 };
+
 struct TexturedMaterial: public Material{
   uint32_t flags             = 0;
   uint32_t albedoIndex       = 0;

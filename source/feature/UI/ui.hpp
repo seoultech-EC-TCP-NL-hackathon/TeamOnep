@@ -1,8 +1,7 @@
 
-#ifndef UIRENDERER_HPP
-#define UIRENDERER_HPP
+#ifndef UIRenderer_HPP
+#define UIRenderer_HPP
 #include <common.hpp>
-#include <../resource/renderpass_pool.hpp>
 #include <../../extern/examples/pipeline.hpp>
 #include "../sculptor/sculptor_act.hpp"
 #include "../../core/io/log_sink.hpp"
@@ -10,7 +9,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "../../core/resource_pool.hpp"
+#include "../../core/render/resource_manager.hpp"
 enum class CallType{
   Mesh,
   Texture,
@@ -35,12 +34,12 @@ class UI{
 
 public:
   UI();
-  void uploadUIPass();
-  void rec(VkCommandBuffer command);
-  void render(VkCommandBuffer command);
-  void draw(VkCommandBuffer command);
-  void drawcall(VkCommandBuffer command);
-  void drawTransition(VkCommandBuffer command);
+  void update();
+  void rec();
+  void render();
+  void draw();
+  void drawcall();
+  void drawTransition();
   void drawStateWindow(ImVec2 size);
   void drawToolBoxRight(ImVec2 size);
   void drawToolBoxLeft(ImVec2 size);
@@ -60,12 +59,11 @@ public:
   void drawCameraUI();
   void drawMaterialUI();
   void drawShaderUI();
-  void setResourceManager(ResourcePool *resourceManager);
+  void setResourceManager(ResourceManager *resourceManager);
 
 private:
   SculptorMode *sculpting = nullptr;
-  EditorMode *editor      = nullptr;
-  FPS *fps                = nullptr;
+  bool rightBox= false;
 
 
   void colorPickerColor();
@@ -82,7 +80,7 @@ private:
   std::shared_ptr<sys::LogSink> sink_;
   VkDescriptorSet backgroundDescriptor_;
   VulkanTexture *backgroundTexture_;
-  ResourcePool *pResourceManager_;
+  ResourceManager *pResourceManager_;
 };
 
 #endif

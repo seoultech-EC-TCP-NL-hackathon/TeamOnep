@@ -35,12 +35,12 @@ include_directories(
         ${SOURCE_DIR}/model
         ${SOURCE_DIR}/core
         ${SOURCE_DIR}/core/GPU
-        ${SOURCE_DIR}/core/GPU/vk_backend
+        ${SOURCE_DIR}/core/GPU/VK
         ${SOURCE_DIR}/core/util
         ${SOURCE_DIR}/core/io
         ${SOURCE_DIR}/scene_graph
 
-        ${SOURCE_DIR}/feature/sculptor
+        #${SOURCE_DIR}/feature/sculptor
         ${SOURCE_DIR}/feature/UI
 
         ${EXTERN_DIR}
@@ -59,7 +59,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(unofficial-shaderc CONFIG REQUIRED PATHS "C:/Users/dlwog/vcpkg/installed/x64-windows/share/shaderc")
 option(SUB_DIR "SUB_DIR" ON)
 
-set(VK_BACKEND ${CMAKE_SOURCE_DIR}/source/core/GPU/vk_backend)
+set(VK_BACKEND ${CMAKE_SOURCE_DIR}/source/core/GPU/VK)
 set(KTX_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/ktx)
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imgui)
 set(IMNODE_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imnodes)
@@ -80,41 +80,25 @@ include_directories(
 set(COMMON_SRC
         main.cpp
         source/core/engine.cpp
-        source/core/resource_pool_init.cpp
-        source/core/resource_pool.cpp
+        source/core/render/resource_manager.cpp
 
         source/core/render/renderer.cpp
 
-        source/core/importer.cpp
+        source/core/resource/importer.cpp
 
         source/core/io/io.cpp
         source/core/io/log_sink.cpp
         source/core/io/event_manager.cpp
-        source/resource/descriptor_manager.cpp
-        source/resource/descriptor_pool.cpp
-        source/resource/shader_pool.cpp
         source/resource/static_buffer.cpp
-        source/resource/descriptor_uploader.cpp
-        source/resource/buffer_builder.cpp
-        source/resource/texture.cpp
-        source/resource/swapchain_view.cpp
-
-        source/core/scene_graph/camera.cpp
+        source/core/GPU/texture.cpp
         source/core/scene_graph/mesh.cpp
-
-        source/resource/semaphore_pool.cpp
-        source/resource/pipeline_pool.cpp
-
-        source/feature/sculptor/sculptor.cpp
-        source/feature/sculptor/dynamic_mesh.cpp
-        source/feature/sculptor/sculptor_act.cpp
+        #source/feature/sculptor/sculptor.cpp
+        #source/feature/sculptor/dynamic_mesh.cpp
+        #source/feature/sculptor/sculptor_act.cpp
 
         source/feature/UI/ui.cpp
 
-        source/resource/command_pool.cpp
-        source/resource/semaphore_pool.cpp
-
-
+        ${VK_BACKEND}/vk_shader_pool.cpp
         ${VK_BACKEND}/vk_command_buffer.cpp
         ${VK_BACKEND}/vk_sync_object.cpp
         ${VK_BACKEND}/vk_context.cpp
@@ -125,10 +109,12 @@ set(COMMON_SRC
         ${VK_BACKEND}/vk_memory_allocator.cpp
         ${VK_BACKEND}/vk_memory_pool.cpp
         ${VK_BACKEND}/vk_graph.cpp
-        ${VK_BACKEND}/vk_node.cpp
+        ${VK_BACKEND}/vk_resource.cpp
         ${VK_BACKEND}/vk_swapchain.cpp
+        ${VK_BACKEND}/vk_pipeline_pool.cpp
         ${VK_BACKEND}/vk_descriptor_allocator.cpp
         ${VK_BACKEND}/vk_sampler_builder.cpp
+
 
         ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_demo.cpp
@@ -137,17 +123,14 @@ set(COMMON_SRC
         ${IMGUI_DIR}/imgui_widgets.cpp
         ${IMGUI_DIR}/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/back/imgui_impl_vulkan.cpp
-
-
-
-
-
         source/resource/sampler_builder.cpp
-
-        source/core/GPU/context.cpp
-        source/core/GPU/vk_backend/vk_discard_pool.cpp
-        source/core/render/swapchainAttachment.cpp
-        source/core/GPU/vk_backend/vk_node.cpp
+        source/core/GPU/Context.cpp
+        source/core/GPU/VK/vk_discard_pool.cpp
+        source/core/GPU/VK/vk_resource.cpp
+        source/core/GPU/VK/vk_descriptor_layout_builder.cpp
+        source/core/GPU/VK/vk_host_buffer.cpp
+        source/core/scene_graph/camera_func.cpp
+        source/core/scene_graph/camera_state.cpp
 
 )
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")

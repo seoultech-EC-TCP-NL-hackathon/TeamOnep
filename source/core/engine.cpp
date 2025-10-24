@@ -1,6 +1,4 @@
 #define   STB_IMAGE_IMPLEMENTATION
-
-
 #include <engine.hpp>
 #include "util/unique.hpp"
 #include "../feature/UI/ui.hpp"
@@ -9,50 +7,52 @@
 #include "io/log_sink.hpp"
 #include "io/io.hpp"
 #include "ui.hpp"
+#include "../scene_graph/camera_state.hpp"
 ///todo:
-/// io sync
-/// ui error
-/// rendering pass
-/// render pass parameter build
-/// io sync
-/// compute pass and GUI setting, node base tensor graph build
-
+/// RI SETTING :
+/// 1. PIPELINE
+/// 2. CONTEXT
+/// 3. COMMAND BUFFER WRAPPER
+///
+///todo:
+/// Resource UPDATE Setting
+/// 1. Mesh Upload on pannel
+/// 2. TEXTURE UPLOAD AND Deffered Rendering
+/// 3. DLSS
+/// 4. RT setting
+/// 5. compute pass Ascync
+///
+///
+///
+///
+///
 Engine::Engine() = default;
+
 void Engine::init()
 {
-  gpu::ctx__.loadContext();
+  gpu::ctx__->loadContext();
   mns::io__.init();
-  pAllocator = gpu::ctx__.pMemoryAllocator.get();
+  pAllocator = gpu::ctx__->pMemoryAllocator.get();
   spdlog::info("create Image Manager");
-
   ResourceManagerCreateInfo resourceCi;
-  resourceCi.device = gpu::ctx__.deviceh__;
+  resourceCi.device = gpu::ctx__->deviceh__;
   resourceCi.allocator = pAllocator;
-  resourceManager_ = std::make_unique<ResourcePool>(resourceCi);
-
-  Camera* cam = resourceManager_->getCamera();
+  resourceManager_ = std::make_unique<ResourceManager>(resourceCi);
   spdlog::info("init renderer");
   RenderInitInfo renderinfo{};
-  renderinfo.extent = extent;
   renderinfo.resourceManager = resourceManager_.get();
-  renderinfo.pDescriptorSetLayouts = (resourceManager_->descriptorManager->getLayouts()->data());
-  renderinfo.descriptorSetLayoutCount = static_cast<uint32_t>(resourceManager_->descriptorManager->getLayouts()->
-    size());
-  Renderer = std::make_unique<RenderingSystem>(renderinfo);
+  Renderer = std::make_unique<IRenderer>(renderinfo);
   pipeline_layout_h = Renderer->pipelineLayout_h;
   ui.setupStyle();
   ui.setResourceManager(resourceManager_.get());
-  Renderer->setCamera(cam);
   Mesh mesh = resourceManager_->uploadMesh("C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/models/hand.fbx");
   mns::uptr<gpu::VkMeshBuffer> meshNode = mns::mUptr<gpu::VkMeshBuffer>();
   meshNode->vertex = mesh.vertices;
   meshNode->indices = mesh.indices;
   meshNode->hostUpdate__ = false;
   meshNode->dirty__ = true;
-  gpu::NodeId handle = gpu::ctx__.pGraphBuilder->buildMeshBuffer(meshNode);
-  Renderer->drawHandle_.push_back(handle);
-  ImGuiIO& io = ImGui::GetIO();
-  io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+  auto ptr= gpu::ctx__->graphBuilder.registerMeshBuffer(meshNode);
+  Renderer->drawHandle_.push_back(ptr);
 }
 
 
@@ -63,20 +63,23 @@ void Engine::run()
   //spdlog::set_level(spdlog::level::trace);
   init();
   ui.sink_ = UIsink;
-  //setUp();
-  Camera* cam = resourceManager_->getCamera();
-  Renderer->setCamera(cam);
-  //uiRenderer->uploadImageToUI();
-  gpu::Scheduler scheduler(&gpu::ctx__);
-  while (!glfwWindowShouldClose(gpu::ctx__.windowh__))
+  //uIRenderer->uploadImageToUI();
+  gpu::Scheduler scheduler(gpu::ctx__);
+  while (!glfwWindowShouldClose(gpu::ctx__->windowh__))
   {
     glfwPollEvents();
-    eventProcessor_.processKeyEvent();
-    Renderer->uploadRenderPass();
-    ui.uploadUIPass();
-    scheduler.runGraphicsPipeline();
+    (scheduler.nextFrame());
+    ui.update();
+    resourceManager_->updateMaincamState((gpu::ctx__->renderingContext.currentFrame__ + 1) %
+                                          gpu::ctx__->renderingContext.maxInflight__);
+    EventManager_.moveProcessEvent();
+    Renderer->uploadDepthPass();
+    Renderer->uploadQuadDraw();
+    Renderer->uploadUiDraw();
+    scheduler.run();
   }
 }
+
 
 Engine::~Engine()
 {

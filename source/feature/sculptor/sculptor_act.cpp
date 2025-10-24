@@ -1,6 +1,7 @@
 #include "sculptor_act.hpp"
 #include "glm/gtx/quaternion.hpp"
-
+#include "../User/user.hpp"
+#include "sculptor.hpp"
 constexpr float MODEL_VIEW_TRANSLATE  = 0.01f;
 constexpr float MODEL_DEPTH_TRANSLATE = 2.0f;
 constexpr float MODEL_SCALING         = 0.01;
@@ -9,6 +10,26 @@ constexpr float EPSILON               = 1e-5f;
 /// sculptor don't use camera
 /// fixed cam mode
 
+//void UI::drawMouseState(ImVec2 size)
+//{
+//  if (sculpting != nullptr)
+//  {
+//    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+//    ImVec2 mouse_pos = ImGui::GetIO().MousePos;
+//    float radius = sculpting->sculptor->brush->radius;
+//    ImU32 mouseColor = IM_COL32(255, 0, 0, 255);
+//    float thickness = 2.0f;
+//    draw_list->AddCircle(mouse_pos, radius, mouseColor, 32, thickness);
+//    if (sculpting->symmetry_)
+//    {
+//      // show symmetry
+//      ImVec2 point = ImGui::GetIO().DisplaySize;
+//      point.x -= mouse_pos.x;
+//      point.y = mouse_pos.y;
+//      draw_list->AddCircle(point, radius, mouseColor, 32, thickness);
+//    }
+//  }
+//}
 SculptorMode::SculptorMode(GLFWwindow *window,
                            Camera *camera,
                            Model *model,

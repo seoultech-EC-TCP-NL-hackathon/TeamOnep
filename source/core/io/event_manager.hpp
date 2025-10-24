@@ -1,42 +1,26 @@
 #ifndef Enteraction__
 #define Enteraction__
 #include "../render/renderer.hpp"
-#include "../sculptor/sculptor_act.hpp"
-#include "../../feature/User/user.hpp"
-#include "imgui.h"
 
-
-class EventProcessor
+class EventManager
 {
   friend class Engine;
-  public:
-  EventProcessor() = default;
-  ~EventProcessor() = default;
-  ImGuiKey glfwToImgui(int key);
-  void processKeyEvent();
 
+  public:
+  EventManager() = default;
+  ~EventManager() = default;
+  void moveProcessEvent();
   void getKey();
   void getMouseEvent();
   void wheelUpdate();
-  void setRenderer(RenderingSystem* renderer);
-  void selectActor();
-
-  private:
-  static void keyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods);
-  static void mouseButtonCallbackWrapper(GLFWwindow* window, int button, int action, int mods);
-  static void cursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos);
-  static void framebufferSizeCallback(GLFWwindow* window, int w, int h);
-  static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-  void onMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-  void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
-  void getViewIndex(double w, double h);
+  void setRenderer(IRenderer* renderer);
 
   private:
   bool singleModel = true;
   UserMode currentActor_ = UserMode::Sculptor;
   std::unique_ptr<User> actor_;
-  ResourcePool* resourcesManager_;
-  RenderingSystem* renderer_;
+  ResourceManager* resourcesManager_;
+  IRenderer* renderer_;
   GLFWwindow* window_;
   Camera* mainCam;
   bool altPressed = false;
