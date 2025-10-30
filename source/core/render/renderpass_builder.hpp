@@ -1,5 +1,6 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
+#include "frame_viewer.hpp"
 #include "render_pipeline.hpp"
 #include "../resource/resource_manager.hpp"
 #include "../../../extern/examples/renderer_resource.hpp"
@@ -7,11 +8,6 @@
 #include "render_target_film.hpp"
 #include "ui/ui.hpp"
 
-struct RenderScreen
-{
-  gpu::viewport viewport_;
-  gpu::Pipeline renderPipeline;
-};
 class RenderPassBuilder
 {
   friend class ResourceManager;
@@ -35,6 +31,7 @@ class RenderPassBuilder
   void uploadUiDraw();
   void draw(VkCommandBuffer cmd, uint32_t currentFrame);
 
+  std::vector<RenderTarget> nodes;
   private:
   void buildPass();
   void updateFrameConstant();
@@ -43,7 +40,6 @@ class RenderPassBuilder
   Pipeline pipeline;
   flm::RenderTragetFilm offscreenFilm_;
   std::vector<Model*> drawHandle_;
-
   std::vector<std::unique_ptr<gpu::RenderPass>> depthOnlyPass;
   std::vector<std::unique_ptr<gpu::RenderPass>> gBufferPass;
   std::vector<std::unique_ptr<gpu::RenderPass>> uiDrawPass;
@@ -56,7 +52,5 @@ class RenderPassBuilder
   std::vector<std::unique_ptr<gpu::RenderPass>> gammaPass;
 
   std::vector<std::unique_ptr<gpu::RenderPass>> swapchainRenderPass;
-
-
 };
 #endif

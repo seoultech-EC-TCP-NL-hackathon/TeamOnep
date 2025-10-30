@@ -80,3 +80,12 @@ void flm::RenderTragetFilm::clearLightBuffer()
   lightningAttachmentHandle_[gpu::ctx__->renderingContext.currentFrame__]->writen__ = false;
   lightningAttachmentHandle_[gpu::ctx__->renderingContext.currentFrame__]->lastWriter__ = nullptr;
 }
+
+void flm::RenderTragetFilm::clearBloomingBuffer()
+{
+  bloomingBlurAttachment_[gpu::ctx__->renderingContext.currentFrame__]->writen__ = false;
+  bloomingBlurAttachment_[gpu::ctx__->renderingContext.currentFrame__]->lastWriter__ = nullptr;
+
+  bloomingExtractAttachment_[gpu::ctx__->renderingContext.currentFrame__]->writen__ = false;
+  bloomingExtractAttachment_[gpu::ctx__->renderingContext.currentFrame__]->lastWriter__ = nullptr;
+}

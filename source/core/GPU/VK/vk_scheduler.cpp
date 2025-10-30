@@ -69,11 +69,8 @@ VkBool32 gpu::VkScheduler::nextFrame()
     throw std::runtime_error("Could not acquire the next swap chain image!");
   }
   //physical reosource mapping on table
-  if (pCtxt_->dirty_)
-  {
-    pCtxt_->dirty_ = false;
-    pCtxt_->compiledPass.clear();
-  }
+
+  pCtxt_->dirty_ = false;
   return result;
 }
 
@@ -180,6 +177,7 @@ void gpu::VkScheduler::run()
   }
   pCtxt_->renderingContext.currentFrame__ = (pCtxt_->renderingContext.currentFrame__ + 1) %
     (pCtxt_->renderingContext.maxInflight__);
+  pCtxt_->compiledPass.clear();
   ////spdlog::debug(" present");
 }
 

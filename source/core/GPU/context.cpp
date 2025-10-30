@@ -17,7 +17,11 @@ namespace gpu
   constexpr uint32_t POLYGON_MODE_LINE = 1;
   constexpr uint32_t POLYGON_MODE_POINT = 2;
 
-  void cmdSetViewports(CommandBuffer cmd, float x, float y, float width, float height)
+  void cmdSetViewports(CommandBuffer cmd,
+                       float x,
+                       float y,
+                       float width,
+                       float height)
   {
     viewport viewport{};
     viewport.x = x;
@@ -36,6 +40,40 @@ namespace gpu
     scissor.extent = {
       static_cast<uint32_t>(width),
       static_cast<uint32_t>(height)
+    };
+
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
+  }
+
+  void cmdSetViewports(
+    CommandBuffer cmd,
+    float x,
+    float y,
+    float width,
+    float height,
+    float rectXs,
+    float rectYs,
+    float rectWidths,
+    float rectHeights )
+  {
+    viewport viewport{};
+    viewport.x = x;
+    viewport.y = y;
+    viewport.width = width;
+    viewport.height = height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor;
+    scissor.offset = {
+      static_cast<int>(rectXs),
+      static_cast<int>(rectYs)
+    };
+
+    scissor.extent = {
+      static_cast<uint32_t>(rectWidths),
+      static_cast<uint32_t>(rectHeights)
     };
 
     vkCmdSetViewport(cmd, 0, 1, &viewport);

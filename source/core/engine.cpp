@@ -6,6 +6,8 @@
 #include "io/log_sink.hpp"
 #include "io/io.hpp"
 #include "../scene_graph/camera_state.hpp"
+#include "render/frame_viewer.hpp"
+
 ///todo:
 /// RI SETTING :
 /// 1. PIPELINE
@@ -15,9 +17,9 @@
 ///todo:
 /// UI setting
 /// 1. shadow render pass
-/// 2. Blooming
-/// 3. Tone mapping
-/// 4. Render Film
+/// 2. render pass -> graph build timing -> once and caching
+/// 3. frame compositing and caching pass
+/// 4. rect -> propiling rendering
 /// 5. Animation
 /// 6. render graph with Imgui
 /// 7. material graph
@@ -81,21 +83,27 @@ void Engine::run()
   init();
   //uIRenderer->uploadImageToUI();
   gpu::Scheduler scheduler(gpu::ctx__);
+  FrameDebug frameViewer;
+  frameViewer.passBuilder = &renderpassBuilder;
   while (!glfwWindowShouldClose(gpu::ctx__->windowh__))
   {
     glfwPollEvents();
     (scheduler.nextFrame());
     ui.update();
     resourceManager.updateResource((gpu::ctx__->renderingContext.currentFrame__ + 1) %
-                                       gpu::ctx__->renderingContext.maxInflight__);
-
+                                   gpu::ctx__->renderingContext.maxInflight__);
     eventManager_.moveProcessEvent();
-    ui.render();
     renderpassBuilder.uploadGBufferWritePass();
     renderpassBuilder.uploadShadowPass();
     renderpassBuilder.uploadLightningPass();
-    renderpassBuilder.offscreenRenderPass();
+    //renderpassBuilder.uploadBloomingExtractPass();
+    //renderpassBuilder.uploadBloomingBlurPass();
+    //renderpassBuilder.uploadTonemapPass();
+    //renderpassBuilder.uploadGammaCorrectionPass();
     renderpassBuilder.uploadUiDraw();
+    frameViewer.show();
+    renderpassBuilder.offscreenRenderPass();
+    ui.render();
     scheduler.run();
   }
 }

@@ -11,14 +11,15 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od")
     add_compile_options(/utf-8)
     add_compile_options(
-            /wd4018  # signed/unsigned 비교
-            /wd4267  # size_t -> int 변환
-            /wd2666  # 오버로드 충돌
+            /wd4018
+            /wd4267
+            /wd2666
     )
     execute_process(COMMAND chcp 65001)
 else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 endif ()
+
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/source)
 set(EXTERN_DIR ${CMAKE_SOURCE_DIR}/extern)
 set(GLM_DIR ${CMAKE_SOURCE_DIR}/extern/glm)
@@ -26,7 +27,7 @@ set(EXTERN_DIR ${CMAKE_SOURCE_DIR}/extern)
 set(MODEL_DIR ${EXTERN_DIR}/externModel/assets/models/)
 set(TEXTURE_DIR ${EXTERN_DIR}/externModel/assets/textures)
 set(SCENE ${CMAKE_SOURCE_DIR}/source/core/scene_graph)
-
+set(IM_NODES ${CMAKE_SOURCE_DIR}/source/core/GPU/imnodes/)
 set(RENDER ${CMAKE_SOURCE_DIR}/source/core/render)
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_options(/wd4005 /wd4996 /wd4834)
@@ -127,6 +128,7 @@ set(COMMON_SRC
         ${IMGUI_DIR}/imgui_widgets.cpp
         ${IMGUI_DIR}/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/back/imgui_impl_vulkan.cpp
+        ${IM_NODES}/imnodes.cpp
 
         ${SCENE}/model.cpp
         ${SCENE}/camera_func.cpp
@@ -136,6 +138,8 @@ set(COMMON_SRC
         ${RENDER}/render_pipeline.cpp
         ${RENDER}/renderpass_builder.cpp
         ${RENDER}/render_target_film.cpp
+        ${RENDER}/frame_viewer.cpp
+
 )
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 add_executable(exe ${COMMON_SRC})

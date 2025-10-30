@@ -21,6 +21,7 @@ namespace flm
     void clearDepthBuffer();
     void clearShadowBuffer();
     void clearLightBuffer();
+    void clearBloomingBuffer();
 
     std::vector<std::unique_ptr<gpu::FrameAttachment>> swapchainAttachment_;
     std::vector<std::unique_ptr<gpu::FrameAttachment>> depthAttachmentHandle_;
@@ -40,8 +41,6 @@ namespace flm
     std::vector<std::unique_ptr<gpu::FrameAttachment>> bloomingBlurAttachment_;
     std::vector<std::unique_ptr<gpu::FrameAttachment>> toneMappingAttachment_;
     std::vector<std::unique_ptr<gpu::FrameAttachment>> gammaAttachment_;
-
-
 
     struct FrameAttachment
     {

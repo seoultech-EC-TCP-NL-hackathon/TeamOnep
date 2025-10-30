@@ -6,6 +6,7 @@
 #include <io/event_manager.hpp>
 #include <resource/resource_manager.hpp>
 #include "GPU/context.hpp"
+#include "render/renderer.hpp"
 
 class Engine
 {
@@ -20,6 +21,7 @@ class Engine
   UI ui;
   EventManager eventManager_;
   ResourceManager resourceManager;
+  Renderer  renderer;
   RenderPassBuilder renderpassBuilder;
 
 };
