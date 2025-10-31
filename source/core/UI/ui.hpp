@@ -1,6 +1,5 @@
 #ifndef UIRenderer_HPP
 #define UIRenderer_HPP
-#include <../../extern/examples/pipeline.hpp>
 //#include "../sculptor/sculptor_act.hpp"
 #include "../../core/io/log_sink.hpp"
 #include <imgui.h>

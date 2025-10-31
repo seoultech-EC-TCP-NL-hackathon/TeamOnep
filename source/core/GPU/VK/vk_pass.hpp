@@ -27,6 +27,7 @@ namespace gpu
     std::optional<VkPolygonMode> polygonMode_;
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers__;
     std::vector<VkBufferMemoryBarrier> bufferBarriers__;
+    uint32_t dependencyLevel;
 
     struct
     {

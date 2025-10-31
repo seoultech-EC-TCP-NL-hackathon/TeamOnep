@@ -35,20 +35,10 @@ void Pipeline::buildPipeline()
   std::uintptr_t gamma = gpu::iShd__->getShader(GAMMA,
                                                 shaderc_fragment_shader);
 
-  std::uintptr_t depthRender = gpu::iShd__->getShader(FRAG_DEPTH_RENDER, shaderc_fragment_shader);
+  std::uintptr_t depthRender = gpu::iShd__->getShader(FRAG_DEPTH_RENDER,
+                                                      shaderc_fragment_shader);
 
-  std::uintptr_t albedoRender = gpu::iShd__->getShader(FRAG_G_BUFFER_ALBEDO_RENDER,
-                                                       shaderc_fragment_shader);
-  std::uintptr_t positionRender = gpu::iShd__->getShader(FRAG_G_BUFFER_POSITION_RENDER,
-                                                         shaderc_fragment_shader);
-
-  std::uintptr_t normalRender = gpu::iShd__->getShader(FRAG_G_BUFFER_NORMAL_RENDER,
-                                                       shaderc_fragment_shader);
-
-  std::uintptr_t roughnessRender = gpu::iShd__->getShader(FRAG_G_BUFFER_ROUGHNESS_RENDER,
-                                                          shaderc_fragment_shader);
-
-  std::uintptr_t lightningRender = gpu::iShd__->getShader(FRAG_LIGHTNING_RENDER,
+  std::uintptr_t offscreenRender = gpu::iShd__->getShader(FRAG_OFF_SCREEN_RENDER,
                                                           shaderc_fragment_shader);
 
 
@@ -148,51 +138,10 @@ void Pipeline::buildPipeline()
     program.pipelineLayout = pipelineLayout_h;
     program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     program.vertShaderModule = cast<VkShaderModule>(vQuad);
-    program.fragShaderModule = cast<VkShaderModule>(normalRender);
+    program.fragShaderModule = cast<VkShaderModule>(offscreenRender);
     program.vertexType = gpu::VertexType::BACKGROUND;
     program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    normalRenderingPipeline__ = gpu::ctx__->pPipelinePool->createPipeline(program);
-  }
-  {
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    program.pipelineLayout = pipelineLayout_h;
-    program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    program.vertShaderModule = cast<VkShaderModule>(vQuad);
-    program.fragShaderModule = cast<VkShaderModule>(positionRender);
-    program.vertexType = gpu::VertexType::BACKGROUND;
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    positionRenderingPipeline__ = gpu::ctx__->pPipelinePool->createPipeline(program);
-  }
-
-  {
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    program.pipelineLayout = pipelineLayout_h;
-    program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    program.vertShaderModule = cast<VkShaderModule>(vQuad);
-    program.fragShaderModule = cast<VkShaderModule>(albedoRender);
-    program.vertexType = gpu::VertexType::BACKGROUND;
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    albedoRenderingPipeline__ = gpu::ctx__->pPipelinePool->createPipeline(program);
-  }
-  {
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    program.pipelineLayout = pipelineLayout_h;
-    program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    program.vertShaderModule = cast<VkShaderModule>(vQuad);
-    program.fragShaderModule = cast<VkShaderModule>(roughnessRender);
-    program.vertexType = gpu::VertexType::BACKGROUND;
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    roughnessRenderingPipeline__ = gpu::ctx__->pPipelinePool->createPipeline(program);
-  }
-  {
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    program.pipelineLayout = pipelineLayout_h;
-    program.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    program.vertShaderModule = cast<VkShaderModule>(vQuad);
-    program.fragShaderModule = cast<VkShaderModule>(lightningRender);
-    program.vertexType = gpu::VertexType::BACKGROUND;
-    program.renderingType = gpu::RenderingAttachmentType::SWAPCHAIN;
-    lightningRenderingPipeline__ = gpu::ctx__->pPipelinePool->createPipeline(program);
+    offScreenTexture = gpu::ctx__->pPipelinePool->createPipeline(program);
   }
 
   drawBackground = VK_TRUE;

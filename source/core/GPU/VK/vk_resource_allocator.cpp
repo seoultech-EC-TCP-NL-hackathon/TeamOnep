@@ -157,7 +157,7 @@ void gpu::VkResourceAllocator::uploadBufferTransferPass(VkBuffer src,
       vkCmdCopyBuffer(cmd, src, dst, 1, &region);
     };
   copyPass.transitionPass = true;
-  pCtxt->compiledPass.push_back(copyPass);
+  pCtxt->transitionPass.push_back(copyPass);
 }
 
 void gpu::VkResourceAllocator::uploadCopyPass(VkBuffer src,
@@ -210,7 +210,7 @@ void gpu::VkResourceAllocator::uploadCopyPass(VkBuffer src,
                           );
     };
   copyPass.transitionPass = true;
-  pCtxt->compiledPass.push_back(copyPass);
+  pCtxt->transitionPass.push_back(copyPass);
 }
 
 void gpu::VkResourceAllocator::buildImageCopyPass(VkBuffer buffer,
@@ -248,7 +248,7 @@ void gpu::VkResourceAllocator::buildImageCopyPass(VkBuffer buffer,
                             );
     };
   copyPass.transitionPass = true;
-  pCtxt->compiledPass.push_back(copyPass);
+  pCtxt->transitionPass.push_back(copyPass);
 }
 
 //immediate upload
@@ -301,7 +301,7 @@ void gpu::VkResourceAllocator::buildImageBarrierPass(VkImage img,
                           );
     };
   BarrierPass.transitionPass = true;
-  pCtxt->compiledPass.push_back(BarrierPass);
+  pCtxt->transitionPass.push_back(BarrierPass);
 }
 
 gpu::VkAllocation gpu::VkResourceAllocator::mBindImage(VkImage image,

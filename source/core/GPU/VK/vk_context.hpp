@@ -21,7 +21,10 @@ const bool ENABLE_VALIDATION_LAYERS = true;
 #include "vk_graph_builder.hpp"
 #include "vk_resource.hpp"
 #include "vk_swapchain.hpp"
-#include "../context.hpp"
+#include "vk_scheduler.hpp"
+
+
+#include "../gpu_context.hpp"
 
 namespace gpu
 {
@@ -49,7 +52,7 @@ namespace gpu
     VkBool32 useDynamicRendering = VK_TRUE;
     VkPhysicalDeviceProperties deviceProperties__;
     std::vector<gpu::VkPass*> uploadedPass;
-    std::vector<gpu::VkPass> compiledPass;
+    std::vector<gpu::VkPass> transitionPass;
     std::unordered_map<VkPassId, VkPass*> passHash_;
     std::vector<std::unique_ptr<gpu::VkResource>> nodes_;
     std::unique_ptr<gpu::VkPipelinePool> pPipelinePool;
@@ -60,6 +63,7 @@ namespace gpu
     std::unique_ptr<gpu::VkDescriptorAllocator> pDescriptorAllocator;
     std::unique_ptr<gpu::VkDescriptorLayoutBuilder> pLayoutBuilder_;
     std::unique_ptr<gpu::VkGraphBuilder> pGraphBuilder;
+    std::unique_ptr<gpu::VkScheduler> pScheduler;
 
     struct
     {

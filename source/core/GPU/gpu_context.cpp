@@ -1,4 +1,4 @@
-#include "../context.hpp"
+#include "../gpu_context.hpp"
 #include "../io/io.hpp"
 #include "vk_context.hpp"
 
@@ -8,7 +8,6 @@ extern mns::IoSystem io__;
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include "vk_shader_pool.hpp"
-
 namespace gpu
 {
   VkContext* ctx__ = new VkContext();
@@ -16,7 +15,6 @@ namespace gpu
   constexpr uint32_t POLYGON_MODE_FILL = 0;
   constexpr uint32_t POLYGON_MODE_LINE = 1;
   constexpr uint32_t POLYGON_MODE_POINT = 2;
-
   void cmdSetViewports(CommandBuffer cmd,
                        float x,
                        float y,
@@ -55,7 +53,7 @@ namespace gpu
     float rectXs,
     float rectYs,
     float rectWidths,
-    float rectHeights )
+    float rectHeights)
   {
     viewport viewport{};
     viewport.x = x;
@@ -109,6 +107,14 @@ namespace gpu
   void cmdDrawQuad(CommandBuffer cmd)
   {
     vkCmdDraw(cmd, 6, 1, 0, 0);
+  }
+
+  void cmdRect(CommandBuffer cmd)
+  {
+  }
+
+  void cmdView(CommandBuffer cmd, float x, float y, int width, int height)
+  {
   }
 }
 #endif

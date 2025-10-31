@@ -1,15 +1,15 @@
 #ifndef RESOURCE_MANAGER
 #define RESOURCE_MANAGER
-
 #include <unordered_map>
+#include "vk_host_buffer.h"
+#include "vk_memory_allocator.hpp"
 #include <../resource/importer.hpp>
 #include "../scene_graph/material.hpp"
 #include "../scene_graph/model.hpp"
-#include "vk_memory_allocator.hpp"
-#include "vk_host_buffer.h"
 #include "../scene_graph/camera_state.hpp"
 #include "../scene_graph/mesh.hpp"
 #include "../scene_graph/light.hpp"
+#include "gpu_context.hpp"
 
 using Key = std::string;
 using bindingIndex = uint32_t;

@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(SPDLOG_COMPILED_LIB ON)
 add_definitions(-DSPDLOG_COMPILED_LIB)
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od")
     add_compile_options(/utf-8)
@@ -29,6 +30,7 @@ set(TEXTURE_DIR ${EXTERN_DIR}/externModel/assets/textures)
 set(SCENE ${CMAKE_SOURCE_DIR}/source/core/scene_graph)
 set(IM_NODES ${CMAKE_SOURCE_DIR}/source/core/GPU/imnodes/)
 set(RENDER ${CMAKE_SOURCE_DIR}/source/core/render)
+
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_options(/wd4005 /wd4996 /wd4834)
 include_directories(
@@ -48,28 +50,35 @@ include_directories(
         ${SOURCE_DIR}/feature/UI
 
         ${EXTERN_DIR}
+        ${EXTERN_DIR}/CubismSdkForNative-5-r.4.1
+        ${EXTERN_DIR}/CubismSdkForNative-5-r.4.1/Core
+        ${EXTERN_DIR}/CubismSdkForNative-5-r.4.1/Framework
+        ${EXTERN_DIR}/CubismSdkForNative-5-r.4.1/Samples
+
         ${EXTERN_DIR}/imgui
         ${EXTERN_DIR}/imgui/back
 
         ${EXTERN_DIR}/ktx/lib
         ${EXTERN_DIR}/ktx/include
         ${EXTERN_DIR}/ktx/other_include
+
 )
+
 find_package(assimp REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(unofficial-shaderc CONFIG REQUIRED PATHS "C:/Users/dlwog/vcpkg/installed/x64-windows/share/shaderc")
+
 option(SUB_DIR "SUB_DIR" ON)
 
 set(VK_BACKEND ${CMAKE_SOURCE_DIR}/source/core/GPU/VK)
 set(KTX_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/ktx)
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imgui)
 set(IMNODE_DIR ${CMAKE_SOURCE_DIR}/source/core/GPU/imnodes)
+
 add_definitions(-DSPDLOG_HEADER_ONLY)
-
-
 include_directories(
         ${VK_BACKEND}/
         ${VK_BACKEND}/../../util
@@ -84,7 +93,7 @@ include_directories(
 set(COMMON_SRC
         main.cpp
         source/core/engine.cpp
-        source/core/GPU/Context.cpp
+        source/core/GPU/gpu_context.cpp
         source/core/resource/resource_manager.cpp
         source/core/resource/importer.cpp
 
@@ -108,7 +117,6 @@ set(COMMON_SRC
         ${VK_BACKEND}/vk_resource_allocator.cpp
         ${VK_BACKEND}/vk_memory_allocator.cpp
         ${VK_BACKEND}/vk_memory_pool.cpp
-        ${VK_BACKEND}/vk_graph.cpp
         ${VK_BACKEND}/vk_resource.cpp
         ${VK_BACKEND}/vk_swapchain.cpp
         ${VK_BACKEND}/vk_pipeline_pool.cpp
@@ -135,15 +143,16 @@ set(COMMON_SRC
         ${SCENE}/camera_state.cpp
         ${SCENE}/light.cpp
 
+        ${RENDER}/frame_graph.cpp
         ${RENDER}/render_pipeline.cpp
-        ${RENDER}/renderpass_builder.cpp
+        ${RENDER}/RenderPassPool.cpp
         ${RENDER}/render_target_film.cpp
-        ${RENDER}/frame_viewer.cpp
+        ${RENDER}/frame_graph_viewer.cpp
+        ${RENDER}/renderer.cpp
 
 )
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 add_executable(exe ${COMMON_SRC})
-add_executable(vTuber ${CMAKE_CURRENT_SOURCE_DIR}/source/feature/vTuber/vTuber.cpp)
 # OS별 링크 및 정의
 if (WIN32)
     target_link_libraries(exe

@@ -23,6 +23,8 @@ namespace gpu
 
   extern std::unique_ptr<IShader> iShd__;
 }
+
+
 #ifdef DX12
 // todo: imple #include
 #endif
@@ -162,7 +164,6 @@ namespace gpu
   constexpr uint32_t ATTACHMENT_STORE_OP_NONE_QCOM = VK_ATTACHMENT_STORE_OP_NONE;
   constexpr uint32_t ATTACHMENT_STORE_OP_NONE_EXT = VK_ATTACHMENT_STORE_OP_NONE;
   constexpr uint32_t ATTACHMENT_STORE_OP_MAX_ENUM = 0x7FFFFFFF;
-
   void cmdSetViewports(CommandBuffer cmd,
                        float x,
                        float y,

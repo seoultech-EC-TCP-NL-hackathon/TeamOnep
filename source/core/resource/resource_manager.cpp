@@ -1,9 +1,11 @@
 #include <filesystem>
 #include <fstream>
 #include "resource_manager.hpp"
-#include "../render/renderpass_builder.hpp"
-#include "../GPU/context.hpp"
 
+#include "engine.hpp"
+#include "../Render/RenderPassPool.hpp"
+#include "../GPU/gpu_context.hpp"
+extern cpu::Context ctx__;
 ResourceManager::ResourceManager() = default;
 ResourceManager::~ResourceManager() = default;
 
@@ -16,6 +18,8 @@ void ResourceManager::init()
     gpu::VkGraphBuilder::buildHostBuffer(sizeof(lightUBO), BufferType::UNIFORM);
   lightBuilder.buffer = lightBuf;
   Light light;
+  light.color = glm::vec4(1.0f);
+  light.transform.position = glm::vec3(0.0f, 0.0f, 4.5f);
   lightBuilder.build(light);
   lightBuilder.uploadData();
   lightBuilder.buffer.sets.resize(gpu::ctx__->renderingContext.maxInflight__);
@@ -63,7 +67,7 @@ void ResourceManager::addModel(gpu::MeshBuffer* meshBuffer,
   std::unique_ptr<Model> model = std::make_unique<Model>();
   model->name = name;
   model->mesh = meshBuffer;
-  pRenderPassBuilder_->drawHandle_.push_back(model.get());
+  cpu::ctx__->drawHandle_.push_back(model.get());
   models_[name] = std::move(model);
 }
 

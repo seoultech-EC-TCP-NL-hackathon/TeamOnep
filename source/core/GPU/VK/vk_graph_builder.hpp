@@ -29,13 +29,14 @@ namespace gpu
     VkGraphBuilder(VkContext* pCtxt);
     ~VkGraphBuilder() = default;
     void deffered();
-    void Immediate();
+    std::vector<VkPass> build(std::vector<VkPass*>& passes, uint32_t frameIndex);
     static std::unique_ptr<VkFrameAttachment> buildSwapchainAttachment(int index);
     static VkHostBuffer buildHostBuffer(VkDeviceSize size, BufferType bufferType);
     static std::unique_ptr<gpu::VkFrameAttachment> buildDepthAttachment();
     static std::unique_ptr<gpu::VkFrameAttachment> buildFrameAttachment(uint32_t format);
 
     private:
+    std::vector<VkPass> compiledPasses_;
     void allocate(VkResource* node);
     void maskingTimeline(VkResource* node);
     void compilePass(VkPass* renderPass);

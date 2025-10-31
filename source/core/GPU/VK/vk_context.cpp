@@ -5,8 +5,7 @@
 #include "vk_swapchain.hpp"
 #include "vk_resource_allocator.hpp"
 #include "vk_descriptor_allocator.hpp"
-
-
+#include "vk_scheduler.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
@@ -69,6 +68,7 @@ namespace gpu
     pDiscardPool = std::make_unique<gpu::VkDiscardPool>(this);
     pPipelinePool = std::make_unique<gpu::VkPipelinePool>(this);
     pGraphBuilder = std::make_unique<gpu::VkGraphBuilder>(this);
+    pScheduler = std::make_unique<gpu::VkScheduler>(this);
     loadImGuiGPUContext();
   }
 

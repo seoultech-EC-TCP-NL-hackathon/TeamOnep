@@ -175,9 +175,10 @@ namespace gpu
     return hostBuffer;
   }
 
-  void VkGraphBuilder::Immediate()
+  std::vector<VkPass> VkGraphBuilder::build(std::vector<VkPass*>& passes,
+                                            uint32_t frameIndex)
   {
-    std::vector<VkPass*>& passes = pCtxt->uploadedPass;
+    compiledPasses_.clear();
     for (auto* pass : passes)
     {
       for (auto* read__ : pass->read__)
@@ -202,7 +203,7 @@ namespace gpu
       }
     }
     std::deque<VkPass*> ready;
-    for (auto* pass : pCtxt->uploadedPass)
+    for (auto* pass : passes)
     {
       pass->linkCount = pass->dependency__.size();
       if (pass->dependency__.size() == 0)
@@ -234,8 +235,7 @@ namespace gpu
 
     VkPass barrierPass;
     barrierPass.passType = VkRenderPassType::BARRIER_PASS;
-    auto* swapchain = pCtxt->pSwapChainContext->swapchainAttachment__[pCtxt->renderingContext.inflightIndex__[pCtxt->
-      renderingContext.currentFrame__]];
+    auto* swapchain = pCtxt->pSwapChainContext->swapchainAttachment__[frameIndex];
     barrierPass.execute = buildImageBarrier(swapchain->currentAccessMask__,
                                             0,
                                             swapchain->currentPipeline__,
@@ -248,9 +248,9 @@ namespace gpu
     swapchain->currentLayout__ = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     swapchain->currentAccessMask__ = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     swapchain->currentPipeline__ = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    pCtxt->compiledPass.push_back(barrierPass);
+    compiledPasses_.push_back(barrierPass);
     //pCtxt->pDiscardPool->registerResource(frameResources);
-    pCtxt->uploadedPass.clear();
+    return compiledPasses_;
   }
 
   ///resource usage-> allocate
@@ -546,7 +546,7 @@ namespace gpu
 
     if (renderPass->execute != nullptr)
     {
-      pCtxt->compiledPass.push_back(*renderPass);
+      compiledPasses_.push_back(*renderPass);
     }
   }
 
@@ -576,7 +576,7 @@ namespace gpu
       image->currentLayout__ = readLayout;
       image->currentAccessMask__ = readAccessMask;
       image->currentPipeline__ = readPipeline;
-      pCtxt->compiledPass.push_back(barrierPass);
+      compiledPasses_.push_back(barrierPass);
       spdlog::trace("barrier pass insert");
     }
   }
@@ -603,7 +603,7 @@ namespace gpu
       image->currentLayout__ = image->writeLayout__;
       image->currentAccessMask__ = image->writeAccessMask__;
       image->currentPipeline__ = image->writePipeline__;
-      pCtxt->compiledPass.push_back(barrierPass);
+      compiledPasses_.push_back(barrierPass);
     }
   }
 

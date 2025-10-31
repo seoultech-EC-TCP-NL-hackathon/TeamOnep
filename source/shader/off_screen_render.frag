@@ -5,21 +5,7 @@ layout (location =0) out vec4 outColor;
 layout (set = 0, binding = 2) uniform sampler2D bindlessTexture[];
 
 layout(push_constant) uniform PushData {
-    int gBufferPositon;
-    int gBufferNormal;
-    int gBufferAlbedo;
-    int gBufferRoughness;
-
-    int depthBuffer;
-    int shadowBuffer;
-    int lightningBuffer;
-    int postProcessBuffer;
-
-    int albedoTex;
-    int normalTex;
-    int roughnessTex;
-    int cubeTex;
-
+    int offscreen;
 } pc;
 
 layout (set = 0, binding = 0) uniform cameraUBD {
@@ -37,6 +23,6 @@ layout (set = 0, binding = 0) uniform cameraUBD {
 } camera;
 void main()
 {
-    vec3 albedo = texture(bindlessTexture[pc.gBufferNormal], uv).rgb;
+    vec3 albedo = texture(bindlessTexture[pc.offscreen], uv).rgb;
     outColor = vec4(albedo, 1.0);
 }

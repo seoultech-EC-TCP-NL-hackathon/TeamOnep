@@ -3,8 +3,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
-#include "context.hpp"
+#include "gpu_context.hpp"
 #include "mesh_sub.hpp"
+#include "vk_host_buffer.h"
+
 #include "util/transform.h"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -28,9 +30,9 @@ struct Model
   ModelConstant constant{};
   Transform transform;
   std::string name;
-  float rotateX ;
-  float rotateY ;
-  float rotateZ ;
+  float rotateX;
+  float rotateY;
+  float rotateZ;
   bool uiState = false;
   void drawUIState();
 };

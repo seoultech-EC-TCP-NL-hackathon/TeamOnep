@@ -1,8 +1,8 @@
 #ifndef LIGHT_HPP
 #define LIGHT_HPP
 #include <vector>
+#include "gpu_context.hpp"
 #include "glm/glm.hpp"
-#include "context.hpp"
 #include "transform.h"
 
 #define MAX_LIGHTS 4

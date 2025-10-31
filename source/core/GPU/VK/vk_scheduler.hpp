@@ -5,7 +5,6 @@
 #ifndef _VK_RENDERER_HPP_
 #define _VK_RENDERER_HPP_
 #include <vector>
-#include "vk_graph.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_sync_object.hpp"
 #include "vk_swapchain.hpp"
@@ -22,11 +21,10 @@ namespace gpu
     VkScheduler(gpu::VkContext* context);
     ~VkScheduler();
     VkBool32 nextFrame();
-    void run();
+    void run(std::vector<VkPass>& passes);
     VkBool32 dirty_;
   private:
     uint32_t lastFrame_ = 0;
-    gpu::VkGraph graphs_;
     gpu::VkCommandBufferPool commandBufferPool_;
     gpu::VkSemaphorePool imageAvailiableSemaphorePool_;
     gpu::VkSemaphorePool renderFinishSemaphorePool_;

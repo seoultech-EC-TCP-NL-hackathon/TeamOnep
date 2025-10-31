@@ -4,15 +4,13 @@
 #include "vk_context.hpp"
 #include "vk_scheduler.hpp"
 #include "vk_graph_builder.hpp"
-#include "vk_graph.hpp"
 
 gpu::VkScheduler::VkScheduler(gpu::VkContext* context) :
   pCtxt_(context),
   imageAvailiableSemaphorePool_(context),
   renderFinishSemaphorePool_(context),
   maxInflightFence_(context),
-  commandBufferPool_(context),
-  graphs_(context)
+  commandBufferPool_(context)
 {
   vkReleaseSwapchainImagesEXT = (PFN_vkReleaseSwapchainImagesEXT)vkGetDeviceProcAddr(context->deviceh__,
        "vkReleaseSwapchainImagesEXT");
@@ -22,12 +20,6 @@ gpu::VkScheduler::VkScheduler(gpu::VkContext* context) :
   }
   pCtxt_->renderingContext.currentFrame__ = 0;
   pCtxt_->renderingContext.inflightIndex__.resize(pCtxt_->pSwapChainContext->img__.size() + 1);
-  //vkCmdSetPolygonModeEXT = (PFN_vkCmdSetPolygonModeEXT)
-  //  vkGetDeviceProcAddr(pCtxt_->deviceh__, "vkCmdSetPolygonModeEXT");
-  //if (!vkCmdSetPolygonModeEXT)
-  //{
-  //  throw std::runtime_error("vkCmdSetPolygonModeEXT not available!");
-  //}
 }
 
 gpu::VkScheduler::~VkScheduler() = default;
@@ -74,7 +66,7 @@ VkBool32 gpu::VkScheduler::nextFrame()
   return result;
 }
 
-void gpu::VkScheduler::run()
+void gpu::VkScheduler::run(std::vector<VkPass>& passes)
 {
   VkCommandBuffer cmd = commandBufferPool_.
     commandBuffers__[pCtxt_->renderingContext.currentFrame__];
@@ -92,8 +84,15 @@ void gpu::VkScheduler::run()
   {
     throw std::runtime_error("failed to begin recording command buffer!");
   }
-  ctx__->pGraphBuilder->Immediate();
-  graphs_.execute(cmd);
+  for (auto pass : gpu::ctx__->transitionPass)
+  {
+    pass.execute(cmd);
+  }
+  gpu::ctx__->transitionPass.clear();
+  for (auto pass : passes)
+  {
+    pass.execute(cmd);
+  }
   vkEndCommandBuffer(cmd);
   ///for (auto pass: graphCompiler_.waveFrontPasses)
   ///{
@@ -177,7 +176,6 @@ void gpu::VkScheduler::run()
   }
   pCtxt_->renderingContext.currentFrame__ = (pCtxt_->renderingContext.currentFrame__ + 1) %
     (pCtxt_->renderingContext.maxInflight__);
-  pCtxt_->compiledPass.clear();
   ////spdlog::debug(" present");
 }
 

@@ -2,10 +2,10 @@
 #include <fstream>
 #include "unique.hpp"
 #include "imgui_internal.h"
-#include "../../core/GPU/context.hpp"
+#include "../../core/GPU/gpu_context.hpp"
 #include "io.hpp"
 #include "ui.hpp"
-#include "render/renderpass_builder.hpp"
+#include "Render/RenderPassPool.hpp"
 UI::UI() = default;
 
 void UI::init()

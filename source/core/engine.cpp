@@ -2,11 +2,11 @@
 #include <engine.hpp>
 #include "util/unique.hpp"
 #include "spdlog/spdlog.h"
-#include "GPU/context.hpp"
+#include "GPU/gpu_context.hpp"
 #include "io/log_sink.hpp"
 #include "io/io.hpp"
 #include "../scene_graph/camera_state.hpp"
-#include "render/frame_viewer.hpp"
+#include "Render/frame_graph_viewer.hpp"
 
 ///todo:
 /// RI SETTING :
@@ -31,6 +31,11 @@
 /// 6. V Tuber
 /// 7. command buffer setting
 Engine::Engine() = default;
+Engine::~Engine() = default ;
+namespace cpu
+{
+  std::unique_ptr<Context>ctx__ = std::make_unique<Context>();
+}
 
 void Engine::init()
 {
@@ -40,17 +45,13 @@ void Engine::init()
   gpu::ctx__->loadContext();
   mns::io__.init();
   ui.init();
+  renderer.init();
   eventManager_.init();
-  resourceManager.pRenderPassBuilder_ = &renderpassBuilder;
   resourceManager.init();
-  renderpassBuilder.init();
-
-  eventManager_.pRenderpassBuilder_ = &renderpassBuilder;
   eventManager_.pResourcesManager_ = &resourceManager;
   eventManager_.ui = &ui;
   ui.setupStyle();
   ui.pResourceManager_ = &resourceManager;
-  ui.pPassBuilder = &renderpassBuilder;
   ui.sink_ = std::move(UIsink);
 
   std::string test = "C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/textures/HAND_C.jpg";
@@ -69,12 +70,8 @@ void Engine::init()
   modle->constant.albedoTextureIndex = resourceManager.textures_[test]->descriptorArrayIndex__;
   modle->constant.normalTextureIndex = resourceManager.textures_[test2]->descriptorArrayIndex__;
   modle->constant.roughnessTextureIndex = resourceManager.textures_[test3]->descriptorArrayIndex__;
-
-
-  //resourceManager.
-  //  uploadMesh("C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/Iron_Man_Mark_44_Hulkbuster/Iron_Man_Mark_44_Hulkbuster_fbx.FBX");
-  //resourceManager.
-  //  uploadMesh("C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/57-estancia_comedor_obj/room.obj");
+  // resourceManager.uploadMesh("C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/Iron_Man_Mark_44_Hulkbuster/Iron_Man_Mark_44_Hulkbuster_fbx.FBX");
+  // resourceManager.uploadMesh("C:/Users/dlwog/OneDrive/Desktop/VkMain-out/assets/57-estancia_comedor_obj/room.obj");
 }
 
 
@@ -82,31 +79,14 @@ void Engine::run()
 {
   init();
   //uIRenderer->uploadImageToUI();
-  gpu::Scheduler scheduler(gpu::ctx__);
-  FrameDebug frameViewer;
-  frameViewer.passBuilder = &renderpassBuilder;
   while (!glfwWindowShouldClose(gpu::ctx__->windowh__))
   {
     glfwPollEvents();
-    (scheduler.nextFrame());
+    gpu::ctx__->pScheduler->nextFrame();
     ui.update();
     resourceManager.updateResource((gpu::ctx__->renderingContext.currentFrame__ + 1) %
                                    gpu::ctx__->renderingContext.maxInflight__);
     eventManager_.moveProcessEvent();
-    renderpassBuilder.uploadGBufferWritePass();
-    renderpassBuilder.uploadShadowPass();
-    renderpassBuilder.uploadLightningPass();
-    //renderpassBuilder.uploadBloomingExtractPass();
-    //renderpassBuilder.uploadBloomingBlurPass();
-    //renderpassBuilder.uploadTonemapPass();
-    //renderpassBuilder.uploadGammaCorrectionPass();
-    renderpassBuilder.uploadUiDraw();
-    frameViewer.show();
-    renderpassBuilder.offscreenRenderPass();
-    ui.render();
-    scheduler.run();
+    renderer.render();
   }
 }
-
-
-Engine::~Engine() = default ;

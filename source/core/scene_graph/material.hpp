@@ -1,6 +1,6 @@
 #ifndef MATERIAL_builderHPP
 #define MATERIAL_builderHPP
-#include "context.hpp"
+#include "gpu_context.hpp"
 #define MATERIAL_MAX 32
 
 struct Material
